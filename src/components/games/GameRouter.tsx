@@ -16,7 +16,10 @@ import { FlashcardGameReal, makePitchCompareRound, makeChordRound, makeScaleDegr
 import { VocalMatch } from "./VocalMatch";
 import { VocalDegreesMajor } from "./VocalDegreesMajor";
 import { VocalStepsRepeat } from "./VocalStepsRepeat";
-import { DangoBrothers } from "./DangoBrothers";
+import { DangoBrothersReal } from "./DangoBrothersReal";
+import { RhythmRepeatReal } from "./RhythmRepeatReal";
+import { ChordLocksReal } from "./ChordLocksReal";
+import { ChannelScrambleReal } from "./ChannelScrambleReal";
 import { SpeedPitch } from "./SpeedPitch";
 import { useMicPermission } from "@/hooks/useMicPermission";
 import type { ChordType } from "@/lib/audio/musicTheory";
@@ -61,7 +64,6 @@ const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnT
   "flash-styles-drums": { generateRound: makeFlashStylesRound },
   "rhythm-puzzles": { generateRound: makeRhythmRound },
   "flash-rhythms": { generateRound: makeRhythmRound },
-  "rhythm-repeat": { generateRound: makeRhythmRound },
   "rhythm-reader": { generateRound: makeRhythmRound },
   "key-puzzles": { generateRound: makeKeyPuzzlesRound },
   "flash-terms-performance": { generateRound: makeFlashTermsRound },
@@ -71,8 +73,6 @@ const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnT
   "flash-progressions-minor": { generateRound: makeSpeakerChordsRound },
   "phrase-fitter": { generateRound: (l) => makeChordRound(l) },
   "tone-trees": { generateRound: makeChordSpellsRound },
-  "chord-locks": { generateRound: (l) => makeChordRound(l) },
-  "channel-match": { generateRound: makeBandMatchRound },
 };
 
 // Singing games
@@ -101,8 +101,17 @@ export function GameRouter({ gameId, onExit }: GameRouterProps) {
     return <FlashcardGameReal game={game} config={cfg} onExit={onExit} />;
   }
 
-  // Dango Brothers (tuning)
-  if (gameId === "dango-brothers") return <DangoBrothers onExit={onExit} />;
+  // Dango Brothers (tuning drag mechanic)
+  if (gameId === "dango-brothers") return <DangoBrothersReal onExit={onExit} />;
+
+  // Rhythm Repeat (beat grid mechanic)
+  if (gameId === "rhythm-repeat") return <RhythmRepeatReal onExit={onExit} />;
+
+  // Chord Locks (combination dial mechanic)
+  if (gameId === "chord-locks") return <ChordLocksReal onExit={onExit} />;
+
+  // Channel Scramble (mixer slider mechanic)
+  if (gameId === "channel-match") return <ChannelScrambleReal onExit={onExit} />;
 
   // Speed Pitch (tem componente próprio, mas agora usa FlashcardGameReal)
   if (gameId === "speed-pitch") return <FlashcardGameReal game={game} config={{ generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) }} onExit={onExit} />;
