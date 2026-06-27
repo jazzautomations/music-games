@@ -83,7 +83,7 @@ export function FlashcardGameReal({ game, config, onExit }: Props) {
     setAudioReady(true);
   }, [defaultInstrument]);
 
-  // ─── Gerar round ───────────────────────────────────
+  // ─── Gerar round (sempre que questionNum ou level muda) ───
 
   useEffect(() => {
     if (!audioReady) return;
@@ -93,12 +93,12 @@ export function FlashcardGameReal({ game, config, onExit }: Props) {
     setFeedback("idle");
     setTimeLeft(timeLimit);
 
-    // Se o round usa um instrumento diferente, carrega
+    // Pré-carrega instrumento e toca quando carregado
     const inst = r.instrument ?? defaultInstrument;
     loadInstrument(inst).then(() => {
-      setTimeout(() => r.play(), 200);
-    });
-  }, [level, config, audioReady, timeLimit, defaultInstrument]);
+      setTimeout(() => { void r.play(); }, 200);
+    }).catch(err => console.error("[FlashcardGame] Erro ao carregar instrumento:", err));
+  }, [level, questionNum, config, audioReady, timeLimit, defaultInstrument]);
 
   // ─── Timer ─────────────────────────────────────────
 
@@ -141,47 +141,35 @@ export function FlashcardGameReal({ game, config, onExit }: Props) {
       if (level >= 10) unlockAchievement("level_10");
       if (level >= 20) unlockAchievement("level_20");
       recordPlay(game.id, level, score + points);
-      setQuestionNum(q => q + 1);
-      if (questionNum + 1 >= questionsPerLevel) {
-        // Nível completo
-        setTimeout(() => {
+
+      // Próxima pergunta: incrementa questionNum → useEffect gera novo round
+      setTimeout(() => {
+        if (questionNum + 1 >= questionsPerLevel) {
+          // Nível completo → sobe de nível
           setScore(s => s + 50);
           setLevel(l => Math.min(20, l + 1));
           setQuestionNum(0);
-        }, 1200);
-      } else {
-        setTimeout(() => {
-          setFeedback("idle");
-          setSelected(null);
-          setLevel(l => l); // força re-gerar round
-          // Incrementa level pra gerar novo round
-          // Mas sem subir de nível — usa um counter interno
-          const r = config.generateRound(level);
-          setRound(r);
-          setSelected(null);
-          setFeedback("idle");
-          setTimeLeft(timeLimit);
-          const inst = r.instrument ?? defaultInstrument;
-          loadInstrument(inst).then(() => setTimeout(() => r.play(), 200));
-        }, 1000);
-      }
+        } else {
+          setQuestionNum(q => q + 1);
+        }
+      }, 1200);
     } else {
       setFeedback("wrong");
       setStreak(0);
       setTimeout(() => {
-        setFeedback("idle");
-        setSelected(null);
-        const r = config.generateRound(level);
-        setRound(r);
-        setTimeLeft(timeLimit);
-        const inst = r.instrument ?? defaultInstrument;
-        loadInstrument(inst).then(() => setTimeout(() => r.play(), 200));
+        // Próxima pergunta (mesmo errando)
+        if (questionNum + 1 >= questionsPerLevel) {
+          setLevel(l => Math.min(20, l + 1));
+          setQuestionNum(0);
+        } else {
+          setQuestionNum(q => q + 1);
+        }
       }, 1500);
     }
   }, [selected, round, config, level, score, game.id, recordPlay, unlockAchievement, timeLeft, timeLimit, defaultInstrument, streak, questionNum, questionsPerLevel]);
 
   const replay = useCallback(() => {
-    if (round) round.play();
+    if (round) { void round.play(); }
   }, [round]);
 
   const restart = () => { setLevel(1); setScore(0); setStreak(0); setBestStreak(0); setSelected(null); setFeedback("idle"); setQuestionNum(0); };
