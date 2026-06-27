@@ -111,7 +111,7 @@ export function GameRouter({ gameId, onExit }: GameRouterProps) {
   if (gameId === "chord-locks") return <ChordLocksReal onExit={onExit} />;
 
   // Channel Scramble (mixer slider mechanic)
-  if (gameId === "channel-match") return <ChannelScrambleReal onExit={onExit} />;
+  if (gameId === "channel-scramble") return <ChannelScrambleReal onExit={onExit} />;
 
   // Speed Pitch (tem componente próprio, mas agora usa FlashcardGameReal)
   if (gameId === "speed-pitch") return <FlashcardGameReal game={game} config={{ generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) }} onExit={onExit} />;

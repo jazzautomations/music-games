@@ -1,17 +1,11 @@
 "use client";
 
-/**
- * GameShell — Layout comum pra todos os jogos
- *
- * Fornece: header com botão voltar + título + badge de categoria,
- * HUD com nível/score/streak, área de conteúdo, e botões de controle.
- */
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, RotateCcw, Mic, MicOff, Trophy } from "lucide-react";
+import { ChevronLeft, RotateCcw, Mic, MicOff } from "lucide-react";
+import { motion } from "framer-motion";
 import type { GameDef } from "@/lib/games/gamesCatalog";
-import { CATEGORY_LABELS, CATEGORY_EMOJIS } from "@/lib/games/gamesCatalog";
+import { CATEGORY_EMOJIS, CATEGORY_LABELS } from "@/lib/games/gamesCatalog";
 
 interface GameShellProps {
   game: GameDef;
@@ -24,103 +18,140 @@ interface GameShellProps {
   onToggleMic?: () => void;
   micError?: string | null;
   children: React.ReactNode;
-  /** Conteúdo extra (ex: controles específicos do jogo) */
   footer?: React.ReactNode;
 }
 
 export function GameShell({
-  game,
-  level,
-  score,
-  streak,
-  onExit,
-  onRestart,
-  micActive,
-  onToggleMic,
-  micError,
-  children,
-  footer,
+  game, level, score, streak, onExit, onRestart,
+  micActive, onToggleMic, micError, children, footer,
 }: GameShellProps) {
+  const levelPct = (level / game.levels) * 100;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a14] via-[#14142a] to-[#0a0a14] text-white flex flex-col">
-      <header className="border-b border-white/10 backdrop-blur sticky top-0 z-20 bg-[#0a0a14]/80">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={onExit} className="p-1">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold flex items-center gap-2">
-                <span>{game.emoji}</span>
-                <span>{game.name}</span>
-              </h1>
-              <p className="text-[11px] text-white/60 -mt-0.5">
-                {CATEGORY_EMOJIS[game.category]} {CATEGORY_LABELS[game.category]} · {game.shortDescription}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {game.uses_mic && onToggleMic && (
-              <Button
-                variant={micActive ? "default" : "outline"}
-                size="sm"
-                onClick={onToggleMic}
-                className={micActive ? "bg-emerald-600 hover:bg-emerald-700" : "border-white/20"}
+    <div className="min-h-screen bg-background text-foreground bg-grid">
+      {/* ─── Header ─── */}
+      <header className="sticky top-0 z-30 glass border-b border-white/5">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={onExit}
+                className="flex-shrink-0 w-9 h-9 rounded-lg glass glass-hover flex items-center justify-center"
               >
-                {micActive ? <><Mic className="w-4 h-4 mr-1.5" /> ON</> : <><MicOff className="w-4 h-4 mr-1.5" /> OFF</>}
-              </Button>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${game.accent} flex items-center justify-center text-xl shadow-lg`}>
+                {game.emoji}
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm truncate">{game.name}</h1>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {CATEGORY_EMOJIS[game.category]} {CATEGORY_LABELS[game.category]}
+                </p>
+              </div>
+            </div>
+            {game.uses_mic && onToggleMic && (
+              <button
+                onClick={onToggleMic}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  micActive
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "glass glass-hover text-muted-foreground"
+                }`}
+              >
+                {micActive ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                {micActive ? "ON" : "OFF"}
+              </button>
             )}
+          </div>
+
+          {/* ─── HUD: Level / Score / Streak ─── */}
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <div className="glass rounded-lg px-3 py-2 text-center">
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Nível</div>
+              <div className="text-lg font-bold tabular-nums">
+                {level}<span className="text-xs text-muted-foreground">/{game.levels}</span>
+              </div>
+              {/* Level progress bar */}
+              <div className="h-0.5 bg-white/5 rounded-full mt-1 overflow-hidden">
+                <motion.div
+                  className={`h-full bg-gradient-to-r ${game.accent}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${levelPct}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
+            <div className="glass rounded-lg px-3 py-2 text-center">
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Score</div>
+              <motion.div
+                key={score}
+                initial={{ scale: 1.2, color: "#fbbf24" }}
+                animate={{ scale: 1, color: "rgb(255 255 255 / 1)" }}
+                transition={{ duration: 0.3 }}
+                className="text-lg font-bold tabular-nums"
+              >
+                {score.toLocaleString("pt-BR")}
+              </motion.div>
+            </div>
+            <div className="glass rounded-lg px-3 py-2 text-center">
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Streak</div>
+              <div className={`text-lg font-bold tabular-nums ${streak >= 5 ? "text-orange-400" : streak >= 2 ? "text-amber-400" : ""}`}>
+                {streak > 0 ? `×${streak}` : "—"}
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6">
-        {micError && (
-          <Card className="mb-4 border-red-500/50 bg-red-950/40 p-4 text-red-200">
-            <p className="text-sm font-semibold">⚠️ {micError}</p>
-          </Card>
-        )}
-
-        {/* HUD */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <Card className="bg-white/5 border-white/10 p-3 text-center">
-            <div className="text-[10px] uppercase tracking-wider text-white/50">Nível</div>
-            <div className="text-2xl font-bold tabular-nums">{level}<span className="text-xs text-white/50">/{game.levels}</span></div>
-          </Card>
-          <Card className="bg-white/5 border-white/10 p-3 text-center">
-            <div className="text-[10px] uppercase tracking-wider text-white/50">Score</div>
-            <div className="text-2xl font-bold tabular-nums">{score}</div>
-          </Card>
-          <Card className="bg-white/5 border-white/10 p-3 text-center">
-            <div className="text-[10px] uppercase tracking-wider text-white/50">Streak</div>
-            <div className="text-2xl font-bold text-emerald-400 tabular-nums">{streak}</div>
-          </Card>
+      {/* ─── Mic error ─── */}
+      {micError && (
+        <div className="max-w-4xl mx-auto px-4 mt-3">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-200 text-sm flex items-start gap-2">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold">{micError}</p>
+              <p className="text-xs text-red-300/60 mt-1">
+                Chrome: ícone 🔒 na barra → Permitir microfone. Firefox: Preferências → Privacidade → Microfone.
+              </p>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Conteúdo do jogo */}
-        {children}
+      {/* ─── Main content ─── */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {children}
+        </motion.div>
 
-        {/* Footer com controles */}
         {footer && <div className="mt-4">{footer}</div>}
 
         {onRestart && (
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" onClick={onRestart} className="border-white/20">
-              <RotateCcw className="w-4 h-4 mr-1" /> Recomeçar
-            </Button>
+          <div className="mt-4">
+            <button
+              onClick={onRestart}
+              className="px-4 py-2 glass glass-hover rounded-lg text-sm text-muted-foreground flex items-center gap-2"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Recomeçar
+            </button>
           </div>
         )}
 
-        {/* Descrição */}
-        <Card className="bg-white/5 border-white/10 p-3 mt-4 text-xs text-white/60">
-          <div className="font-semibold text-white/80 mb-1">💡 Sobre</div>
-          {game.longDescription}
-          <div className="mt-2 flex flex-wrap gap-1">
-            {game.skills.map((s) => (
-              <span key={s} className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[10px]">{s}</span>
+        {/* Game description */}
+        <div className="glass rounded-xl p-4 mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Sobre este jogo</div>
+          <p className="text-xs text-muted-foreground/80 leading-relaxed">{game.longDescription}</p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {game.skills.map(s => (
+              <span key={s} className="px-2 py-0.5 rounded-md bg-white/5 text-muted-foreground text-[10px]">{s}</span>
             ))}
           </div>
-        </Card>
+        </div>
       </main>
     </div>
   );
