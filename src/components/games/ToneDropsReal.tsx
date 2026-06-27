@@ -27,8 +27,8 @@ import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
 import {
   initAudio, playNote, midiToFreq,
-  type InstrumentType,
-} from "@/lib/audio/audioEngine";
+  type RealInstrument,
+} from "@/lib/audio/soundfontEngine";
 import { midiToFreq as midiToFreqUtil } from "@/lib/audio/musicTheory";
 
 // ═══ DADOS REAIS EXTRAÍDOS DO THETA ═══
@@ -44,12 +44,12 @@ const MAX_SIMULTANEOUS_DROPS = [
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 ];
 
-const INSTRUMENTS_PER_LEVEL: InstrumentType[] = [
-  "piano" as InstrumentType, // 0 (não usado)
-  "guitar", "piano", "marimba", "synth", "piano",
-  "guitar", "piano", "marimba", "synth", "piano",
-  "guitar", "piano", "marimba", "synth", "piano",
-  "guitar", "piano", "marimba", "synth", "piano",
+const INSTRUMENTS_PER_LEVEL: RealInstrument[] = [
+  "acoustic_grand_piano", // 0 (não usado)
+  "acoustic_guitar_nylon", "acoustic_grand_piano", "marimba", "soprano_sax", "acoustic_grand_piano",
+  "acoustic_guitar_nylon", "acoustic_grand_piano", "marimba", "soprano_sax", "acoustic_grand_piano",
+  "acoustic_guitar_nylon", "acoustic_grand_piano", "marimba", "soprano_sax", "acoustic_grand_piano",
+  "acoustic_guitar_nylon", "acoustic_grand_piano", "marimba", "soprano_sax", "acoustic_grand_piano",
 ];
 
 const POSSIBLE_ANSWERS_PER_LEVEL: string[][] = [
@@ -90,7 +90,7 @@ interface Drop {
   scaleDegree: string;
   midi: number;
   y: number; // 0-100 (posição vertical, 0=topo, 100=chão)
-  instrument: InstrumentType;
+  instrument: RealInstrument;
   answered: boolean;
   correct: boolean;
 }
@@ -116,7 +116,7 @@ export function ToneDropsReal({ onExit }: Props) {
   const problemsThisLevel = NUM_PROBLEMS_PER_LEVEL[level] || 20;
   const maxDrops = MAX_SIMULTANEOUS_DROPS[level] || 1;
   const dropSpeed = (DROP_SPEED_PER_LEVEL[level] || 20) / 12.0 * 0.3; // ajustado pra px/frame
-  const instrument = INSTRUMENTS_PER_LEVEL[level] || "piano";
+  const instrument = INSTRUMENTS_PER_LEVEL[level] || "acoustic_grand_piano";
   const answerOptions = POSSIBLE_ANSWERS_PER_LEVEL[level] || ["1", "2", "3", "8"];
   const { recordPlay, unlockAchievement } = useProgress();
 
@@ -132,7 +132,7 @@ export function ToneDropsReal({ onExit }: Props) {
     };
     setDrops((d) => [...d, newDrop]);
     // Toca o tom do drop
-    playNote(midiToFreq(midi), 0.6, instrument);
+    playNoteReal(midiToFreq(midi), 0.6, instrument);
   }, [drops.length, maxDrops, answerOptions, instrument]);
 
   // Game loop

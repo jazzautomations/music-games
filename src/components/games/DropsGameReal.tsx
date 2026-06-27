@@ -17,7 +17,7 @@ import { Heart, Play, RotateCcw } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { GAMES_MAP, type GameDef } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, playChord, playMelody, midiToFreq, type InstrumentType } from "@/lib/audio/audioEngine";
+import { initAudio, playNote, playChord, playMelody, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 import { generateScale, generateChord, PRACTICE_KEYS, INTERVALS, CHORDS, type ChordType } from "@/lib/audio/musicTheory";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -42,7 +42,7 @@ interface DropsGameConfig {
   /** Drops simultâneos por nível */
   getMaxDrops: (level: number) => number;
   /** Instrumento por nível */
-  getInstrument: (level: number) => InstrumentType;
+  getInstrument: (level: number) => RealInstrument;
   /** Número de problemas pra completar o nível */
   getNumProblems: (level: number) => number;
 }
@@ -87,9 +87,9 @@ export function DropsGameReal({ game, config, onExit }: Props) {
     setDrops(d => [...d, { id, y: 0, answered: false, correct: false, audioFreq: problem.freqs, answerLabel: problem.answer }]);
     // Toca o áudio (nota, acorde, ou intervalo)
     if (problem.freqs.length === 1) {
-      playNote(problem.freqs[0], 0.6, instrument);
+      playNoteReal(problem.freqs[0], 0.6, instrument);
     } else if (problem.freqs.length <= 4) {
-      playChord(problem.freqs, 0.8, instrument);
+      playChordReal(problem.freqs, 0.8, instrument);
     }
   }, [audioReady, drops, maxDrops, config, level, answers, instrument]);
 
@@ -211,7 +211,7 @@ export const toneDropsConfig: DropsGameConfig = {
   },
   getSpeed: (lvl) => lvl >= 11 ? 1.0 : 0.5,
   getMaxDrops: (lvl) => lvl >= 11 ? 2 : 1,
-  getInstrument: (lvl) => (["guitar","piano","marimba","synth","piano"] as InstrumentType[])[(lvl - 1) % 5],
+  getInstrument: (lvl) => (["acoustic_guitar_nylon","acoustic_grand_piano","marimba","soprano_sax","acoustic_grand_piano"] as RealInstrument[])[(lvl - 1) % 5],
   getNumProblems: (lvl) => lvl >= 11 ? 20 : Math.min(20, 12 + lvl),
 };
 
@@ -231,7 +231,7 @@ export const chordDropsConfig: DropsGameConfig = {
   },
   getSpeed: (lvl) => lvl >= 11 ? 0.9 : 0.45,
   getMaxDrops: (lvl) => lvl >= 11 ? 2 : 1,
-  getInstrument: (_lvl) => "piano" as InstrumentType,
+  getInstrument: (_lvl) => "acoustic_grand_piano",
   getNumProblems: (lvl) => Math.min(20, 10 + lvl),
 };
 
@@ -254,6 +254,6 @@ export const melodicDropsConfig: DropsGameConfig = {
   },
   getSpeed: (lvl) => lvl >= 11 ? 0.8 : 0.4,
   getMaxDrops: (lvl) => 1,
-  getInstrument: (_lvl) => "piano" as InstrumentType,
+  getInstrument: (_lvl) => "acoustic_grand_piano",
   getNumProblems: (lvl) => Math.min(20, 10 + lvl),
 };

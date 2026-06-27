@@ -19,7 +19,7 @@ import { ChevronLeft, RotateCcw, Play, Heart, Clock } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, midiToFreq } from "@/lib/audio/audioEngine";
+import { initAudio, playNote, midiToFreq } from "@/lib/audio/soundfontEngine";
 
 const MAX_NOTES = [0, 8,8,8,8,8, 8,9,10,11,12, 16,16,16,16,16, 20,20,20,24,24];
 const BPM_OPTIONS = [{bpm: 120, ms: 500}, {bpm: 100, ms: 600}, {bpm: 90, ms: 666}, {bpm: 80, ms: 750}];
@@ -77,7 +77,7 @@ export function RhythmRepeatReal({ onExit }: Props) {
     beats.forEach((beat, i) => {
       if (beat.active) {
         playTimeoutRef.current = setTimeout(() => {
-          playNote(440, beat.duration * bpmInfo.ms / 1000 * 0.8, "piano");
+          playNoteReal(440, beat.duration * bpmInfo.ms / 1000 * 0.8, "acoustic_grand_piano");
           setCurrentBeat(i);
         }, totalTime);
       }
@@ -104,7 +104,7 @@ export function RhythmRepeatReal({ onExit }: Props) {
       return newHits;
     });
     // Toca o som do tap
-    playNote(660, 0.1, "marimba");
+    playNoteReal(660, 0.1, "marimba");
     // Verifica se acertou
     if (beats[beatIdx]?.active) {
       setFeedback("perfect");

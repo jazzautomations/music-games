@@ -17,7 +17,7 @@ import { Play, RotateCcw, Clock } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { type GameDef } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, playChord, playMelody, midiToFreq, type InstrumentType } from "@/lib/audio/audioEngine";
+import { initAudio, playNote, playChord, playMelody, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 import { generateScale, generateChord, PRACTICE_KEYS, INTERVALS, CHORDS, type ChordType, type ScaleType } from "@/lib/audio/musicTheory";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -155,7 +155,7 @@ export function makePitchCompareRound(level: number): FlashcardRound {
   else if (r < 0.8) { freq2 = baseFreq * Math.pow(2, -diff / 1200); answer = "Mais baixo"; }
   else { freq2 = baseFreq; answer = "Igual"; }
   return {
-    play: () => { playNote(baseFreq, 0.6, "piano"); setTimeout(() => playNote(freq2, 0.6, "piano"), 800); },
+    play: () => { playNoteReal(baseFreq, 0.6, "acoustic_grand_piano"); setTimeout(() => playNoteReal(freq2, 0.6, "acoustic_grand_piano"), 800); },
     prompt: "O segundo tom está mais alto, mais baixo ou igual?",
     options: [{label: "Mais alto", correct: answer === "Mais alto"}, {label: "Mais baixo", correct: answer === "Mais baixo"}, {label: "Igual", correct: answer === "Igual"}],
   };
@@ -169,7 +169,7 @@ export function makeChordRound(level: number, chordTypes?: ChordType[]): Flashca
   const chord = generateChord(root, selected);
   const wrong = types.filter(t => t !== selected).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playChord(chord.map(midiToFreq), 0.8, "piano"),
+    play: () => playChordReal(chord.map(midiToFreq), 0.8, "acoustic_grand_piano"),
     prompt: "Qual é o tipo deste acorde?",
     options: [{label: CHORDS[selected].name, correct: true}, ...wrong.map(t => ({label: CHORDS[t].name, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -185,7 +185,7 @@ export function makeScaleDegreeRound(level: number): FlashcardRound {
   const labels = ["1 (Tônica)", "2", "3", "4", "5", "6", "7"];
   const wrongIdxs = [0,1,2,3,4,5,6].filter(i => i !== degreeIdx && i < maxDegree).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playNote(midiToFreq(target), 0.5, "piano"),
+    play: () => playNoteReal(midiToFreq(target), 0.5, "acoustic_grand_piano"),
     prompt: `Qual scale degree desta nota em ${key.name} Maior?`,
     options: [{label: labels[degreeIdx], correct: true}, ...wrongIdxs.map(i => ({label: labels[i], correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -200,7 +200,7 @@ export function makeIntervalRound(level: number, harmonic = false): FlashcardRou
   const correctInterval = INTERVALS.find(i => i.semitones === interval);
   const wrong = INTERVALS.filter(i => i.semitones !== interval).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: harmonic ? () => playChord([midiToFreq(root), midiToFreq(second)], 0.8, "piano") : () => { playNote(midiToFreq(root), 0.4, "piano"); setTimeout(() => playNote(midiToFreq(second), 0.4, "piano"), 500); },
+    play: harmonic ? () => playChordReal([midiToFreq(root), midiToFreq(second)], 0.8, "acoustic_grand_piano") : () => { playNoteReal(midiToFreq(root), 0.4, "acoustic_grand_piano"); setTimeout(() => playNoteReal(midiToFreq(second), 0.4, "acoustic_grand_piano"), 500); },
     prompt: harmonic ? "Qual é o intervalo harmônico?" : "Qual é o intervalo melódico?",
     options: [{label: correctInterval!.name, correct: true}, ...wrong.map(i => ({label: i.name, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -213,7 +213,7 @@ export function makeTonicFinderRound(level: number): FlashcardRound {
   const phrase = [scale[2], scale[4], scale[5], scale[0]];
   const wrong = scale.filter(m => m !== scale[0]).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playMelody(phrase.map(midiToFreq), 0.4, "piano"),
+    play: () => playMelodyReal(phrase.map(midiToFreq), 0.4, "acoustic_grand_piano"),
     prompt: `Qual é a tônica desta melodia?`,
     options: [{label: midiToName(scale[0]), correct: true}, ...wrong.map(m => ({label: midiToName(m), correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -233,7 +233,7 @@ export function makeCadenceRound(level: number): FlashcardRound {
   const firstChord = generateChord(scale[4], "dominant7");
   const secondChord = generateChord(scale[0], "major");
   return {
-    play: () => { playChord(firstChord.map(midiToFreq), 0.6, "piano"); setTimeout(() => playChord(secondChord.map(midiToFreq), 0.8, "piano"), 700); },
+    play: () => { playChordReal(firstChord.map(midiToFreq), 0.6, "acoustic_grand_piano"); setTimeout(() => playChordReal(secondChord.map(midiToFreq), 0.8, "acoustic_grand_piano"), 700); },
     prompt: "Qual é o tipo de cadência?",
     options: cadences.map(c => ({label: c.name, correct: c.name === selected.name})),
   };
@@ -252,7 +252,7 @@ export function makeBandMatchRound(level: number): FlashcardRound {
   const correctLabel = selected.map(s => s.name).join(", ");
   const wrong = instruments.filter(i => !selected.includes(i)).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => selected.forEach((inst, i) => setTimeout(() => playNote(inst.freq, 0.5, "piano"), i * 200)),
+    play: () => selected.forEach((inst, i) => setTimeout(() => playNoteReal(inst.freq, 0.5, "acoustic_grand_piano"), i * 200)),
     prompt: `Quantos instrumentos você ouve? (${num})`,
     options: [{label: correctLabel, correct: true}, ...wrong.map(w => ({label: selected.slice(0,-1).map(s=>s.name).concat(w.name).join(", "), correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -265,10 +265,10 @@ export function makeFlashEffectsRound(level: number): FlashcardRound {
   const baseFreq = 440;
   return {
     play: () => {
-      if (selected.name === "Delay") { playNote(baseFreq, 0.2, "piano"); setTimeout(() => playNote(baseFreq, 0.15, "piano"), 300); setTimeout(() => playNote(baseFreq, 0.1, "piano"), 600); }
-      else if (selected.name === "Chorus") { playNote(baseFreq, 0.4, "piano"); setTimeout(() => playNote(baseFreq * 1.01, 0.4, "piano"), 50); }
-      else if (selected.name === "Reverb") { playNote(baseFreq, 0.2, "piano"); setTimeout(() => playNote(baseFreq, 0.1, "piano"), 250); setTimeout(() => playNote(baseFreq, 0.08, "piano"), 450); }
-      else playNote(baseFreq, 0.4, "piano");
+      if (selected.name === "Delay") { playNoteReal(baseFreq, 0.2, "acoustic_grand_piano"); setTimeout(() => playNoteReal(baseFreq, 0.15, "acoustic_grand_piano"), 300); setTimeout(() => playNoteReal(baseFreq, 0.1, "acoustic_grand_piano"), 600); }
+      else if (selected.name === "Chorus") { playNoteReal(baseFreq, 0.4, "acoustic_grand_piano"); setTimeout(() => playNoteReal(baseFreq * 1.01, 0.4, "acoustic_grand_piano"), 50); }
+      else if (selected.name === "Reverb") { playNoteReal(baseFreq, 0.2, "acoustic_grand_piano"); setTimeout(() => playNoteReal(baseFreq, 0.1, "acoustic_grand_piano"), 250); setTimeout(() => playNoteReal(baseFreq, 0.08, "acoustic_grand_piano"), 450); }
+      else playNoteReal(baseFreq, 0.4, "acoustic_grand_piano");
     },
     prompt: "Qual efeito foi aplicado?",
     options: effects.map(e => ({label: e.name, correct: e.name === selected.name})),
@@ -288,7 +288,7 @@ export function makeChordSpellsRound(level: number): FlashcardRound {
     wrongs.push(mod.map(m => midiToName(m)).join(" - "));
   }
   return {
-    play: () => playChord(chord.map(midiToFreq), 0.6, "piano"),
+    play: () => playChordReal(chord.map(midiToFreq), 0.6, "acoustic_grand_piano"),
     prompt: `Quais notas formam ${root.name}${CHORDS[selected].short}?`,
     options: [{label: correctNotes, correct: true}, ...wrongs.map(l => ({label: l, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -307,7 +307,7 @@ export function makeSpeakerChordsRound(level: number): FlashcardRound {
   const scale = generateScale(root.midi, "major", 0);
   const chords = selected.degrees.map(d => generateChord(scale[d], "major"));
   return {
-    play: () => chords.forEach((c, i) => setTimeout(() => playChord(c.map(midiToFreq), 0.5, "piano"), i * 600)),
+    play: () => chords.forEach((c, i) => setTimeout(() => playChordReal(c.map(midiToFreq), 0.5, "acoustic_grand_piano"), i * 600)),
     prompt: "Qual progressão você ouviu?",
     options: progressions.map(p => ({label: p.name, correct: p.name === selected.name})),
   };
@@ -324,7 +324,7 @@ export function makeInversionsRound(level: number): FlashcardRound {
   else if (selected === "2ª Inversão") reordered = [chord[2], chord[0] + 12, chord[1] + 12];
   else reordered = chord;
   return {
-    play: () => playChord(reordered.map(midiToFreq), 0.6, "piano"),
+    play: () => playChordReal(reordered.map(midiToFreq), 0.6, "acoustic_grand_piano"),
     prompt: "Em qual inversão está este acorde?",
     options: inversions.map(inv => ({label: inv, correct: inv === selected})),
   };
@@ -337,7 +337,7 @@ export function makeArpeggioRound(level: number): FlashcardRound {
   const root = 60 + Math.floor(Math.random() * 12);
   const chord = generateChord(root, selected);
   return {
-    play: () => playMelody(chord.map(midiToFreq), 0.3, "piano"),
+    play: () => playMelodyReal(chord.map(midiToFreq), 0.3, "acoustic_grand_piano"),
     prompt: "Este arpejo é de qual tipo de acorde?",
     options: types.map(t => ({label: CHORDS[t].name, correct: t === selected})),
   };
@@ -349,7 +349,7 @@ export function makeEQMatchRound(level: number): FlashcardRound {
   const selected = freqs[Math.floor(Math.random() * freqs.length)];
   const wrong = freqs.filter(f => f !== selected).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playNote(selected, 0.5, "piano"),
+    play: () => playNoteReal(selected, 0.5, "acoustic_grand_piano"),
     prompt: "Qual frequência está mais destacada?",
     options: [{label: `${selected} Hz`, correct: true}, ...wrong.map(f => ({label: `${f} Hz`, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -360,7 +360,7 @@ export function makeFlashStylesRound(level: number): FlashcardRound {
   const styles = [{name: "Rock"}, {name: "Jazz/Swing"}, {name: "Funk"}, {name: "Balada"}];
   const selected = styles[Math.floor(Math.random() * 4)];
   return {
-    play: () => { for (let i = 0; i < 4; i++) setTimeout(() => playNote(80, 0.1, "piano"), i * 300); },
+    play: () => { for (let i = 0; i < 4; i++) setTimeout(() => playNoteReal(80, 0.1, "acoustic_grand_piano"), i * 300); },
     prompt: "Qual estilo de bateria você ouviu?",
     options: styles.map(s => ({label: s.name, correct: s.name === selected.name})),
   };
@@ -376,7 +376,7 @@ export function makeRhythmRound(level: number): FlashcardRound {
   ];
   const selected = patterns[Math.floor(Math.random() * patterns.length)];
   return {
-    play: () => { let t = 0; selected.beats.forEach(b => { setTimeout(() => playNote(440, 0.1, "piano"), t); t += b * 300; }); },
+    play: () => { let t = 0; selected.beats.forEach(b => { setTimeout(() => playNoteReal(440, 0.1, "acoustic_grand_piano"), t); t += b * 300; }); },
     prompt: "Qual padrão rítmico você ouviu?",
     options: patterns.map(p => ({label: p.name, correct: p.name === selected.name})).sort(() => Math.random() - 0.5).slice(0, 4),
   };
@@ -388,7 +388,7 @@ export function makeKeyPuzzlesRound(level: number): FlashcardRound {
   const selected = keys[Math.floor(Math.random() * 4)];
   const wrong = keys.filter(k => k.name !== selected.name).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playNote(midiToFreq(60), 0.4, "piano"),
+    play: () => playNoteReal(midiToFreq(60), 0.4, "acoustic_grand_piano"),
     prompt: `Quantos sustenidos tem ${selected.name}?`,
     options: [{label: `${selected.sharps > 0 ? selected.sharps + " sustenidos" : selected.sharps === 0 ? "Sem sustenidos" : Math.abs(selected.sharps) + " bemóis"}`, correct: true}, ...wrong.map(k => ({label: `${k.sharps > 0 ? k.sharps + " sustenidos" : k.sharps === 0 ? "Sem sustenidos" : Math.abs(k.sharps) + " bemóis"}`, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -405,7 +405,7 @@ export function makeFlashTermsRound(level: number): FlashcardRound {
   const selected = terms[Math.floor(Math.random() * 4)];
   const wrong = terms.filter(t => t.name !== selected.name).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playNote(440, 0.3, "piano"),
+    play: () => playNoteReal(440, 0.3, "acoustic_grand_piano"),
     prompt: `Qual é a definição de "${selected.name}"?`,
     options: [{label: selected.def, correct: true}, ...wrong.map(t => ({label: t.def, correct: false}))].sort(() => Math.random() - 0.5),
   };
@@ -417,7 +417,7 @@ export function makeFlashNotationNotesRound(level: number): FlashcardRound {
   const noteName = NOTE_NAMES[((midi % 12) + 12) % 12];
   const wrong = NOTE_NAMES.filter(n => n !== noteName).sort(() => Math.random() - 0.5).slice(0, 3);
   return {
-    play: () => playNote(midiToFreq(midi), 0.4, "piano"),
+    play: () => playNoteReal(midiToFreq(midi), 0.4, "acoustic_grand_piano"),
     prompt: `Qual nota está sendo tocada?`,
     options: [{label: noteName, correct: true}, ...wrong.map(n => ({label: n, correct: false}))].sort(() => Math.random() - 0.5),
   };

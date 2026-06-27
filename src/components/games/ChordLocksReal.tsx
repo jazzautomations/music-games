@@ -17,7 +17,7 @@ import { ChevronLeft, RotateCcw, ArrowUp, ArrowDown, Check, Heart } from "lucide
 import { GameShell } from "./GameShell";
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playChord, midiToFreq } from "@/lib/audio/audioEngine";
+import { initAudio, playChord, midiToFreq } from "@/lib/audio/soundfontEngine";
 import { generateScale, generateChord, PRACTICE_KEYS, CHORDS, type ChordType } from "@/lib/audio/musicTheory";
 
 const NUM_CHORDS = [0, 6,6,7,7,7, 8,8,8,8,8, 10,10,10,10,10, 12,12,12,15,16];
@@ -97,7 +97,7 @@ export function ChordLocksReal({ onExit }: Props) {
     setTarget({ func, mod, inv, chordMidis: chord });
     setFuncIdx(0); setModIdx(0); setInvIdx(0);
     setFeedback("idle");
-    setTimeout(() => playChord(chord.map(midiToFreq), 1.0, "piano"), 300);
+    setTimeout(() => playChordReal(chord.map(midiToFreq), 1.0, "acoustic_grand_piano"), 300);
   }, [functions, level]);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export function ChordLocksReal({ onExit }: Props) {
     if (target) {
       const selectedFunc = functions[which === "func" ? (funcIdx + dir + functions.length) % functions.length : funcIdx];
       const funcInfo = FUNCTION_MAP[selectedFunc];
-      if (funcInfo) playChord(generateChord(60, funcInfo.type).map(midiToFreq), 0.4, "piano");
+      if (funcInfo) playChordReal(generateChord(60, funcInfo.type).map(midiToFreq), 0.4, "acoustic_grand_piano");
     }
   };
 
@@ -189,7 +189,7 @@ export function ChordLocksReal({ onExit }: Props) {
           {/* Replay button */}
           <Card className="bg-gradient-to-br from-amber-950/30 to-orange-950/20 border-amber-500/30 p-4 mb-4 text-center">
             <div className="text-xs text-white/60 mb-2">Ouça o acorde e identifique: função + modificador + inversão</div>
-            <Button onClick={() => target && playChord(target.chordMidis.map(midiToFreq), 1.0, "piano")} variant="outline" className="border-white/30 bg-white/10">
+            <Button onClick={() => target && playChordReal(target.chordMidis.map(midiToFreq), 1.0, "acoustic_grand_piano")} variant="outline" className="border-white/30 bg-white/10">
               ▶ Ouvir acorde
             </Button>
           </Card>

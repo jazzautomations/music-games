@@ -17,7 +17,7 @@ import { ChevronLeft, RotateCcw, Play, Check, Clock } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, midiToFreq, type InstrumentType } from "@/lib/audio/audioEngine";
+import { initAudio, playNote, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 
 const SLIDER_SPEED = [0, 1,1,1,1,1, 0.8,0.8,0.8,0.8,0.8, 0.7,0.7,0.7,0.7,0.6, 0.6,0.6,0.6,0.5,0.5];
 const TIME_PER_SLIDER = 6; // segundos
@@ -26,18 +26,18 @@ interface Channel {
   name: string;
   emoji: string;
   freq: number;
-  instrument: InstrumentType;
+  instrument: RealInstrument;
   targetVolume: number; // 0-100
   currentVolume: number; // 0-100
 }
 
 const CHANNEL_PRESETS: Omit<Channel, "targetVolume" | "currentVolume">[] = [
   { name: "Bateria", emoji: "🥁", freq: 80, instrument: "marimba" },
-  { name: "Baixo", emoji: "🎸", freq: 110, instrument: "bass" },
-  { name: "Guitarra", emoji: "🎸", freq: 330, instrument: "guitar" },
-  { name: "Piano", emoji: "🎹", freq: 440, instrument: "piano" },
-  { name: "Vocal", emoji: "🎤", freq: 660, instrument: "synth" },
-  { name: "Teclado", emoji: "🎼", freq: 880, instrument: "organ" },
+  { name: "Baixo", emoji: "🎸", freq: 110, instrument: "electric_bass_finger" },
+  { name: "Guitarra", emoji: "🎸", freq: 330, instrument: "acoustic_guitar_nylon" },
+  { name: "Piano", emoji: "🎹", freq: 440, instrument: "acoustic_grand_piano" },
+  { name: "Vocal", emoji: "🎤", freq: 660, instrument: "soprano_sax" },
+  { name: "Teclado", emoji: "🎼", freq: 880, instrument: "church_organ" },
 ];
 
 interface Props { onExit: () => void; }
@@ -97,7 +97,7 @@ export function ChannelScrambleReal({ onExit }: Props) {
       const volume = c.targetVolume / 100;
       // Toca cada canal com o volume alvo
       const gain = 0.02 + volume * 0.15;
-      playNote(c.freq, 0.8, c.instrument);
+      playNoteReal(c.freq, 0.8, c.instrument);
     });
   }, [channels]);
 
@@ -105,7 +105,7 @@ export function ChannelScrambleReal({ onExit }: Props) {
     channels.forEach(c => {
       const volume = c.currentVolume / 100;
       const gain = 0.02 + volume * 0.15;
-      playNote(c.freq, 0.8, c.instrument);
+      playNoteReal(c.freq, 0.8, c.instrument);
     });
   }, [channels]);
 
