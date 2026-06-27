@@ -16,7 +16,7 @@ import { VocalDegreesMajor } from "./VocalDegreesMajor";
 import { VocalStepsRepeat } from "./VocalStepsRepeat";
 import { DangoBrothers } from "./DangoBrothers";
 import { SpeedPitch } from "./SpeedPitch";
-import { ToneDrops } from "./ToneDrops";
+import { ToneDropsReal } from "./ToneDropsReal";
 import { useMicPermission } from "@/hooks/useMicPermission";
 import * as gen from "@/lib/games/roundGenerators";
 
@@ -101,7 +101,7 @@ export function GameRouter({ gameId, onExit }: GameRouterProps) {
   // Jogos com componentes próprios
   if (gameId === "dango-brothers") return <DangoBrothers onExit={onExit} />;
   if (gameId === "speed-pitch") return <SpeedPitch onExit={onExit} />;
-  if (gameId === "tone-drops") return <ToneDrops onExit={onExit} />;
+  if (gameId === "tone-drops") return <ToneDropsReal onExit={onExit} />;
 
   // Jogos de microfone — usa VocalMatch como base (mesma mecânica)
   // Para os jogos de singing que não têm componente próprio, usa VocalMatch com config diferente
