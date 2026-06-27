@@ -1,75 +1,81 @@
 "use client";
 
 /**
- * GameRouter — Roteia o jogo correto baseado no ID
+ * GameRouter — Roteia cada jogo pro componente correto
  *
- * - Jogos de microfone (singing): usam VocalMatch/VocalDegreesMajor/VocalStepsRepeat
- *   (já existentes do projeto anterior)
- * - Jogos de multiple-choice: usam MultipleChoiceGame com o gerador correto
- * - Jogos específicos (Tone Drops, Dango Brothers, Speed Pitch): usam componentes próprios
+ * Mapeamento:
+ * - Drops games (ToneDrops, ChordDrops, MelodicDrops, etc) → DropsGameReal
+ * - Flashcard games (FlashChords, FlashTones, PitchCompare, etc) → FlashcardGameReal
+ * - Singing games (VocalMatch, VocalDegrees, etc) → componentes de microfone
+ * - Tuning games (DangoBros) → componente próprio
  */
 
-import { GAMES_MAP, type GameDef } from "@/lib/games/gamesCatalog";
-import { MultipleChoiceGame } from "./MultipleChoiceGame";
+import { GAMES_MAP } from "@/lib/games/gamesCatalog";
+import { DropsGameReal, toneDropsConfig, chordDropsConfig, melodicDropsConfig } from "./DropsGameReal";
+import { FlashcardGameReal, makePitchCompareRound, makeChordRound, makeScaleDegreeRound, makeIntervalRound, makeTonicFinderRound, makeCadenceRound, makeBandMatchRound, makeFlashEffectsRound, makeChordSpellsRound, makeSpeakerChordsRound, makeInversionsRound, makeArpeggioRound, makeEQMatchRound, makeFlashStylesRound, makeRhythmRound, makeKeyPuzzlesRound, makeFlashTermsRound, makeFlashNotationNotesRound } from "./FlashcardGameReal";
 import { VocalMatch } from "./VocalMatch";
 import { VocalDegreesMajor } from "./VocalDegreesMajor";
 import { VocalStepsRepeat } from "./VocalStepsRepeat";
 import { DangoBrothers } from "./DangoBrothers";
 import { SpeedPitch } from "./SpeedPitch";
-import { ToneDropsReal } from "./ToneDropsReal";
 import { useMicPermission } from "@/hooks/useMicPermission";
-import * as gen from "@/lib/games/roundGenerators";
+import type { ChordType } from "@/lib/audio/musicTheory";
 
-interface GameRouterProps {
-  gameId: string;
-  onExit: () => void;
-}
+interface GameRouterProps { gameId: string; onExit: () => void; }
 
-/** Mapa de jogos que usam MultipleChoiceGame com gerador específico */
-const MC_GAMES: Record<string, { generator: (level: number) => import("@/components/games/MultipleChoiceGame").MCRound; timed?: boolean }> = {
-  "channel-scramble": { generator: gen.genChannelScramble },
-  "band-match": { generator: gen.genBandMatch },
-  "eq-match": { generator: gen.genEQMatch },
-  "flash-effects": { generator: gen.genFlashEffects },
-  "flash-terms-performance": { generator: gen.genFlashTerms },
-  "pitch-compare": { generator: gen.genPitchCompare },
-  "rhythm-puzzles": { generator: gen.genRhythmPuzzles },
-  "flash-rhythms": { generator: gen.genFlashRhythms },
-  "rhythm-repeat": { generator: gen.genRhythmRepeat },
-  "rhythm-reader": { generator: gen.genRhythmReader },
-  "flash-styles-drums": { generator: gen.genFlashStylesDrums },
-  "tonic-finder": { generator: gen.genTonicFinder },
-  "flash-notation-notes": { generator: gen.genFlashNotationNotes },
-  "key-puzzles": { generator: gen.genKeyPuzzles },
-  "number-blaster": { generator: gen.genNumberBlaster },
-  "paddle-tones": { generator: gen.genPaddleTones },
-  "tonal-recall": { generator: gen.genTonalRecall },
-  "flash-tones": { generator: gen.genFlashTones },
-  "melodic-drops": { generator: gen.genMelodicDrops },
-  "harmonic-drops": { generator: gen.genHarmonicDrops },
-  "flash-intervals-melodic": { generator: gen.genFlashIntervalsMelodic },
-  "flash-intervals-harmonic": { generator: gen.genFlashIntervalsHarmonic },
-  "flash-notation-intervals": { generator: gen.genFlashNotationIntervals },
-  "chord-drops": { generator: gen.genChordDrops },
-  "flash-chords": { generator: gen.genFlashChords },
-  "tone-trees": { generator: gen.genToneTrees },
-  "phrase-fitter": { generator: gen.genPhraseFitter },
-  "speed-chords": { generator: gen.genSpeedChords, timed: true },
-  "flash-chords-quality": { generator: gen.genFlashChordsQuality },
-  "flash-notation-chords": { generator: gen.genFlashNotationChords },
-  "chord-spells": { generator: gen.genChordSpells },
-  "chord-locks": { generator: gen.genChordLocks },
-  "speaker-chords": { generator: gen.genSpeakerChords },
-  "flash-progressions-major": { generator: gen.genFlashProgressionsMajor },
-  "flash-progressions-minor": { generator: gen.genFlashProgressionsMinor },
-  "flash-cadences": { generator: gen.genFlashCadences },
-  "triads": { generator: gen.genTriads },
-  "seventh-chords": { generator: gen.genSeventhChords },
-  "inversions": { generator: gen.genInversions },
-  "arpeggios": { generator: gen.genArpeggios },
+// Drops games → DropsGameReal com config específica
+const DROPS_CONFIG = {
+  "tone-drops": toneDropsConfig,
+  "chord-drops": chordDropsConfig,
+  "melodic-drops": melodicDropsConfig,
+  "harmonic-balloons": melodicDropsConfig,
+  "tonal-recall": toneDropsConfig,
+  "flash-intervals-m": melodicDropsConfig,
+  "flash-intervals-harmonic": melodicDropsConfig,
 };
 
-/** Jogos de microfone (singing) */
+// Flashcard games → FlashcardGameReal com gerador específico
+const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnType<typeof makeChordRound>; timed?: boolean; getTimeLimit?: (lvl: number) => number; numOptions?: number }> = {
+  "pitch-compare": { generateRound: makePitchCompareRound },
+  "speed-pitch": { generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) },
+  "flash-chords": { generateRound: (l) => makeChordRound(l) },
+  "flash-chords-quality": { generateRound: (l) => makeChordRound(l, l <= 3 ? ["major", "minor"] : ["major", "minor", "diminished", "augmented"]) },
+  "triads": { generateRound: (l) => makeChordRound(l, ["major", "minor", "diminished", "augmented"]) },
+  "seventh-chords": { generateRound: (l) => makeChordRound(l, ["major7", "dominant7", "minor7", "halfDiminished" as ChordType]) },
+  "speed-chords": { generateRound: (l) => makeChordRound(l), timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) },
+  "inversions": { generateRound: makeInversionsRound },
+  "arpeggios": { generateRound: makeArpeggioRound },
+  "flash-tones": { generateRound: makeScaleDegreeRound },
+  "number-blaster": { generateRound: makeScaleDegreeRound },
+  "paddle-pitch": { generateRound: makeScaleDegreeRound },
+  "flash-intervals-melodic": { generateRound: (l) => makeIntervalRound(l, false) },
+  "flash-intervals-harmonic": { generateRound: (l) => makeIntervalRound(l, true) },
+  "flash-notation-intervals": { generateRound: (l) => makeIntervalRound(l, false) },
+  "tonic-finder": { generateRound: makeTonicFinderRound },
+  "flash-cadences": { generateRound: makeCadenceRound },
+  "band-match": { generateRound: makeBandMatchRound },
+  "flash-effects": { generateRound: makeFlashEffectsRound },
+  "chord-spells": { generateRound: makeChordSpellsRound },
+  "speaker-chords": { generateRound: makeSpeakerChordsRound },
+  "eq-match": { generateRound: makeEQMatchRound },
+  "flash-styles-drums": { generateRound: makeFlashStylesRound },
+  "rhythm-puzzles": { generateRound: makeRhythmRound },
+  "flash-rhythms": { generateRound: makeRhythmRound },
+  "rhythm-repeat": { generateRound: makeRhythmRound },
+  "rhythm-reader": { generateRound: makeRhythmRound },
+  "key-puzzles": { generateRound: makeKeyPuzzlesRound },
+  "flash-terms-performance": { generateRound: makeFlashTermsRound },
+  "flash-notation-notes": { generateRound: makeFlashNotationNotesRound },
+  "flash-notation-chords": { generateRound: (l) => makeChordRound(l) },
+  "flash-progressions-major": { generateRound: makeSpeakerChordsRound },
+  "flash-progressions-minor": { generateRound: makeSpeakerChordsRound },
+  "phrase-fitter": { generateRound: (l) => makeChordRound(l) },
+  "tone-trees": { generateRound: makeChordSpellsRound },
+  "chord-locks": { generateRound: (l) => makeChordRound(l) },
+  "channel-match": { generateRound: makeBandMatchRound },
+};
+
+// Singing games
 const SINGING_GAMES = new Set([
   "vocal-match", "vocal-degrees-major", "vocal-degrees-minor",
   "vocal-steps-repeat", "two-tones-major", "two-tones-minor",
@@ -78,66 +84,38 @@ const SINGING_GAMES = new Set([
   "parrot-phrases", "harmony-singing",
 ]);
 
-/** Jogos com componentes próprios */
-const CUSTOM_GAMES = new Set([
-  "dango-brothers", "speed-pitch", "tone-drops",
-]);
-
 export function GameRouter({ gameId, onExit }: GameRouterProps) {
   const game = GAMES_MAP[gameId];
   const mic = useMicPermission();
 
-  if (!game) {
-    return (
-      <div className="min-h-screen bg-[#0a0a14] text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl mb-4">Jogo não encontrado: {gameId}</p>
-          <button onClick={onExit} className="px-4 py-2 bg-white/10 rounded">Voltar</button>
-        </div>
-      </div>
-    );
+  if (!game) return <div className="min-h-screen bg-[#0a0a14] text-white flex items-center justify-center"><div className="text-center"><p className="text-xl mb-4">Jogo não encontrado</p><button onClick={onExit} className="px-4 py-2 bg-white/10 rounded">Voltar</button></div></div>;
+
+  // Drops games
+  if (DROPS_CONFIG[gameId]) {
+    return <DropsGameReal game={game} config={DROPS_CONFIG[gameId]} onExit={onExit} />;
   }
 
-  // Jogos com componentes próprios
-  if (gameId === "dango-brothers") return <DangoBrothers onExit={onExit} />;
-  if (gameId === "speed-pitch") return <SpeedPitch onExit={onExit} />;
-  if (gameId === "tone-drops") return <ToneDropsReal onExit={onExit} />;
+  // Flashcard games
+  if (FLASHCARD_CONFIG[gameId]) {
+    const cfg = FLASHCARD_CONFIG[gameId];
+    return <FlashcardGameReal game={game} config={cfg} onExit={onExit} />;
+  }
 
-  // Jogos de microfone — usa VocalMatch como base (mesma mecânica)
-  // Para os jogos de singing que não têm componente próprio, usa VocalMatch com config diferente
+  // Dango Brothers (tuning)
+  if (gameId === "dango-brothers") return <DangoBrothers onExit={onExit} />;
+
+  // Speed Pitch (tem componente próprio, mas agora usa FlashcardGameReal)
+  if (gameId === "speed-pitch") return <FlashcardGameReal game={game} config={{ generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) }} onExit={onExit} />;
+
+  // Singing games
   if (SINGING_GAMES.has(gameId)) {
-    // Vocal Match, Vocal Degrees Major, Vocal Steps Repeat têm componentes próprios
     if (gameId === "vocal-match") return <VocalMatch onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
     if (gameId === "vocal-degrees-major") return <VocalDegreesMajor onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
     if (gameId === "vocal-steps-repeat") return <VocalStepsRepeat onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
-
-    // Outros jogos de singing usam VocalMatch como fallback
+    // Outros singing games usam VocalMatch como base
     return <VocalMatch onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
   }
 
-  // Multiple Choice games
-  if (MC_GAMES[gameId]) {
-    const config = MC_GAMES[gameId];
-    return (
-      <MultipleChoiceGame
-        game={game}
-        onExit={onExit}
-        generateRound={config.generator}
-        timed={config.timed}
-      />
-    );
-  }
-
-  // Fallback: MultipleChoiceGame genérico
-  return (
-    <MultipleChoiceGame
-      game={game}
-      onExit={onExit}
-      generateRound={() => ({
-        play: () => {},
-        options: [{ label: "Em breve", correct: true }],
-        prompt: "Este jogo será implementado em breve.",
-      })}
-    />
-  );
+  // Fallback
+  return <FlashcardGameReal game={game} config={{ generateRound: makeChordRound }} onExit={onExit} />;
 }
