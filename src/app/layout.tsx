@@ -3,26 +3,26 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "MasterSinger — Afinador Vocal, Cursos e Estúdio MIDI",
+  title: "Music Game Center — Afinador Vocal, Cursos e Estúdio MIDI",
   description:
-    "MasterSinger é o app gratuito pra aprender a cantar: afinador em tempo real (precisão YIN), estúdio MIDI, prática gamificada de escalas e intervalos, treino de ouvido e academia com 8 cursos. Tudo no navegador, sem download.",
+    "Music Game Center é o app gratuito pra aprender a cantar: afinador em tempo real (precisão YIN), estúdio MIDI, prática gamificada de escalas e intervalos, treino de ouvido e academia com 8 cursos. Tudo no navegador, sem download.",
   keywords: [
     "cantar", "afinador vocal", "treino vocal", "ear training",
     "pitch detection", "YIN", "escala maior", "intervalos", "acordes",
     "sight singing", "vocal match", "tone drops",
   ],
-  authors: [{ name: "MasterSinger" }],
+  authors: [{ name: "Music Game Center" }],
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "MasterSinger — Cante Afinado",
+    title: "Music Game Center — Cante Afinado",
     description: "Afinador em tempo real, estúdio MIDI e academia de canto. Grátis, sem download — tudo no navegador.",
     locale: "pt_BR",
     type: "website",
-    siteName: "MasterSinger",
+    siteName: "Music Game Center",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MasterSinger — Cante Afinado",
+    title: "Music Game Center — Cante Afinado",
     description: "Afinador em tempo real, estúdio MIDI e academia de canto. Grátis, sem download.",
   },
 };

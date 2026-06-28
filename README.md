@@ -1,4 +1,4 @@
-# MasterSinger 🎤
+# Music Game Center 🎤
 
 > 50 jogos de treino musical — ear training, pitch, ritmo, melodia, harmonia e canto. Tudo no navegador, sem download.
 

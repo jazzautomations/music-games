@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "mastersinger_progress_v1";
+const STORAGE_KEY = "music_game_center_progress_v1";
 
 export interface GameProgress {
   gameId: string;

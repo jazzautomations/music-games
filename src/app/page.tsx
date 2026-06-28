@@ -51,7 +51,7 @@ export default function Home() {
               <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-background animate-pulse" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-tight">MasterSinger</h1>
+              <h1 className="font-bold text-lg tracking-tight">Music Game Center</h1>
               <p className="text-[10px] text-muted-foreground -mt-0.5">{GAMES.length} jogos · treino musical</p>
             </div>
           </div>
