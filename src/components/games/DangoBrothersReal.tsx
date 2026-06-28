@@ -19,7 +19,7 @@ import { ChevronLeft, RotateCcw, ArrowUp, ArrowDown, Check, Heart, Clock } from 
 import { GameShell } from "./GameShell";
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
+import { initAudio, playNoteReal, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 import { PRACTICE_KEYS, generateScale } from "@/lib/audio/musicTheory";
 
 const NUM_PROBLEMS = 4; // sempre 4 por nível
@@ -67,7 +67,7 @@ export function DangoBrothersReal({ onExit }: Props) {
     setCurrentIdx(0);
     setFeedback("idle");
     // Toca o primeiro dango
-    if (audioReady) playNoteReal(midiToFreq(newDangos[0].midi), 0.5, "acoustic_grand_piano");
+    if (audioReady) void playNoteReal(midiToFreq(newDangos[0].midi), 0.5, "acoustic_grand_piano");
   }, [audioReady]);
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export function DangoBrothersReal({ onExit }: Props) {
       if (newTuning < -80 || newTuning > 80) return d;
       // Toca o som com a nova afinação
       const detunedFreq = midiToFreq(d.midi) * Math.pow(2, newTuning / 1200);
-      playNoteReal(detunedFreq, 0.3, "acoustic_grand_piano");
+      void playNoteReal(detunedFreq, 0.3, "acoustic_grand_piano");
       return { ...d, tuning: newTuning };
     }));
   }, [currentIdx, feedback]);
@@ -123,7 +123,7 @@ export function DangoBrothersReal({ onExit }: Props) {
         if (currentIdx < dangos.length - 1) {
           const nextIdx = currentIdx + 1;
           setCurrentIdx(nextIdx);
-          playNoteReal(midiToFreq(dangos[nextIdx].midi), 0.5, "acoustic_grand_piano");
+          void playNoteReal(midiToFreq(dangos[nextIdx].midi), 0.5, "acoustic_grand_piano");
           // Reinicia timer
           timerRef.current = setInterval(() => {
             setTimeLeft(t => { if (t <= 0.1) { setGameOver(true); return 0; } return t - 0.1; });

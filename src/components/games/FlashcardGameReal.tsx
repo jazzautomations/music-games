@@ -393,7 +393,6 @@ export function makePitchCompareRound(level: number): FlashcardRound {
     prompt: "O segundo tom está mais alto, mais baixo ou igual ao primeiro?",
     context: `Diferença: ${diff} cents`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: "Mais alto", correct: answer === "Mais alto", emoji: "⬆️" },
       { label: "Mais baixo", correct: answer === "Mais baixo", emoji: "⬇️" },
@@ -416,12 +415,11 @@ export function makeChordRound(level: number, chordTypes?: ChordType[]): Flashca
   const wrong = types.filter(t => t !== selected).sort(() => Math.random() - 0.5).slice(0, 3);
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playChordReal(chord.map(midiToFreq), 0.8, inst),
+    play: () => { void playChordReal(chord.map(midiToFreq), 0.8, inst); },
     staffNotes: chord,
     prompt: "Qual é o tipo deste acorde?",
     context: `Nota fundamental: ${midiToName(root)}`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: CHORDS[selected].name, correct: true },
       ...wrong.map(t => ({ label: CHORDS[t].name, correct: false })),
@@ -444,11 +442,10 @@ export function makeScaleDegreeRound(level: number): FlashcardRound {
     .slice(0, 3);
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playNoteReal(midiToFreq(target), 0.5, inst),
+    play: () => { void playNoteReal(midiToFreq(target), 0.5, inst); },
     prompt: "Qual scale degree desta nota?",
     context: `Tonalidade: ${key.name} Maior`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: labels[degreeIdx], correct: true },
       ...wrongIdxs.map(i => ({ label: labels[i], correct: false })),
@@ -474,7 +471,6 @@ export function makeIntervalRound(level: number, harmonic = false): FlashcardRou
     prompt: harmonic ? "Qual é o intervalo harmônico (notas simultâneas)?" : "Qual é o intervalo melódico (notas em sequência)?",
     context: `Nota inicial: ${midiToName(root)}`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: correctInterval.name, correct: true, sub: correctInterval.short },
       ...wrong.map(i => ({ label: i.name, correct: false, sub: i.short })),
@@ -491,11 +487,10 @@ export function makeTonicFinderRound(level: number): FlashcardRound {
   const wrong = scale.filter(m => m !== scale[0]).sort(() => Math.random() - 0.5).slice(0, 3);
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playMelodyReal(phrase.map(midiToFreq), 0.4, inst),
+    play: () => { void playMelodyReal(phrase.map(midiToFreq), 0.4, inst); },
     prompt: "Ouça a melodia. Qual é a nota tônica (a nota que soa como 'casa')?",
     context: `Frase de 6 notas`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: midiToName(scale[0]), correct: true },
       ...wrong.map(m => ({ label: midiToName(m), correct: false })),
@@ -553,7 +548,6 @@ export function makeBandMatchRound(level: number): FlashcardRound {
     play: () => selected.forEach((inst, i) => setTimeout(() => playNoteReal(inst.freq, 0.6, inst.inst), i * 250)),
     prompt: `Quantos instrumentos você ouve? (${num})`,
     context: `Instrumentos reais gravados`,
-    staffNotes: [midi],
     options: [
       { label: correctLabel, correct: true },
       ...wrong.map(w => ({ label: [...selected.slice(0, -1).map(s => s.name), w.name].join(", "), correct: false })),
@@ -611,12 +605,11 @@ export function makeChordSpellsRound(level: number): FlashcardRound {
   }
   const inst = INSTRUMENTS.piano;
   return {
-    play: () => playChordReal(chord.map(midiToFreq), 0.6, inst),
+    play: () => { void playChordReal(chord.map(midiToFreq), 0.6, inst); },
     staffNotes: chord,
     prompt: `Quais notas formam o acorde ${root.name}${CHORDS[selected].short}?`,
     context: `Tipo: ${CHORDS[selected].name}`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: correctNotes, correct: true },
       ...wrongs.map(l => ({ label: l, correct: false })),
@@ -666,7 +659,7 @@ export function makeInversionsRound(level: number): FlashcardRound {
   else reordered = chord;
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playChordReal(reordered.map(midiToFreq), 0.6, inst),
+    play: () => { void playChordReal(reordered.map(midiToFreq), 0.6, inst); },
     prompt: "Em qual inversão está este acorde?",
     context: `Acorde: ${midiToName(root)} maior`,
     instrument: inst,
@@ -683,7 +676,7 @@ export function makeArpeggioRound(level: number): FlashcardRound {
   const chord = generateChord(root, selected);
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playMelodyReal(chord.map(midiToFreq), 0.3, inst),
+    play: () => { void playMelodyReal(chord.map(midiToFreq), 0.3, inst); },
     staffNotes: chord,
     prompt: "Este arpejo (acorde tocado nota por nota) é de qual tipo?",
     context: `Nota inicial: ${midiToName(root)}`,
@@ -700,11 +693,10 @@ export function makeEQMatchRound(level: number): FlashcardRound {
   const wrong = freqs.filter(f => f !== selected).sort(() => Math.random() - 0.5).slice(0, 3);
   const inst = INSTRUMENTS.vibraphone;
   return {
-    play: () => playNoteReal(selected, 0.5, inst),
+    play: () => { void playNoteReal(selected, 0.5, inst); },
     prompt: "Qual frequência está mais destacada no som?",
     context: `Frequências: ${freqs.join(", ")} Hz`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: `${selected} Hz`, correct: true },
       ...wrong.map(f => ({ label: `${f} Hz`, correct: false })),
@@ -783,11 +775,10 @@ export function makeKeyPuzzlesRound(level: number): FlashcardRound {
   const scale = generateScale(60, "major", 0);
   const inst = INSTRUMENTS.piano;
   return {
-    play: () => playMelodyReal([scale[0], scale[2], scale[4], scale[0]].map(midiToFreq), 0.3, inst),
+    play: () => { void playMelodyReal([scale[0], scale[2], scale[4], scale[0]].map(midiToFreq), 0.3, inst); },
     prompt: `Esta escala tem ${selected.type}. Qual é a tonalidade?`,
     context: `${selected.accidentals > 0 ? selected.accidentals + " sustenidos" : selected.accidentals < 0 ? Math.abs(selected.accidentals) + " bemóis" : "Sem acidentes"}`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: selected.name, correct: true, sub: selected.type },
       ...wrong.map(k => ({ label: k.name, correct: false, sub: k.type })),
@@ -833,7 +824,6 @@ export function makeFlashTermsRound(level: number): FlashcardRound {
     },
     prompt: `O que significa "${selected.name}"?`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: selected.def, correct: true },
       ...wrong.map(t => ({ label: t.def, correct: false })),
@@ -850,12 +840,10 @@ export function makeFlashNotationNotesRound(level: number): FlashcardRound {
   const wrong = NOTE_NAMES.filter(n => n !== noteName).sort(() => Math.random() - 0.5).slice(0, 3);
   const inst = getInstrumentForLevel(level);
   return {
-    play: () => playNoteReal(midiToFreq(midi), 0.5, inst),
-    staffNotes: [midi],
+    play: () => { void playNoteReal(midiToFreq(midi), 0.5, inst); },
     prompt: "Qual nota está sendo tocada?",
     context: `Oitava: ${octave}`,
     instrument: inst,
-    staffNotes: [midi],
     options: [
       { label: noteName, correct: true },
       ...wrong.map(n => ({ label: n, correct: false })),

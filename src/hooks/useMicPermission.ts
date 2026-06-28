@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * useMicPermission — Hook pra gerenciar permissão de microfone
- *
- * Cria um MicManager singleton e expõe funções pra ativar/desativar.
- */
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MicManager } from "@/lib/audio/pitchDetector";
 import { initAudio } from "@/lib/audio/soundfontEngine";
@@ -19,7 +13,6 @@ export function useMicPermission() {
   const startMic = useCallback(async () => {
     setMicError(null);
     try {
-      // Inicializa Tone.js primeiro (necessário após user gesture)
       await initAudio();
       if (!managerRef.current) managerRef.current = new MicManager();
       await managerRef.current.start(2048);

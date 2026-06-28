@@ -17,7 +17,7 @@ import { Heart, Play, RotateCcw } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { GAMES_MAP, type GameDef } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, playChord, playMelody, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
+import { initAudio, playNoteReal, playChordReal, playMelodyReal, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 import { generateScale, generateChord, PRACTICE_KEYS, INTERVALS, CHORDS, type ChordType } from "@/lib/audio/musicTheory";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -87,9 +87,9 @@ export function DropsGameReal({ game, config, onExit }: Props) {
     setDrops(d => [...d, { id, y: 0, answered: false, correct: false, audioFreq: problem.freqs, answerLabel: problem.answer }]);
     // Toca o áudio (nota, acorde, ou intervalo)
     if (problem.freqs.length === 1) {
-      playNoteReal(problem.freqs[0], 0.6, instrument);
+      void playNoteReal(problem.freqs[0], 0.6, instrument);
     } else if (problem.freqs.length <= 4) {
-      playChordReal(problem.freqs, 0.8, instrument);
+      void playChordReal(problem.freqs, 0.8, instrument);
     }
   }, [audioReady, drops, maxDrops, config, level, answers, instrument]);
 

@@ -17,7 +17,7 @@ import { ChevronLeft, RotateCcw, Play, Check, Clock } from "lucide-react";
 import { GameShell } from "./GameShell";
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
-import { initAudio, playNote, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
+import { initAudio, playNoteReal, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
 
 const SLIDER_SPEED = [0, 1,1,1,1,1, 0.8,0.8,0.8,0.8,0.8, 0.7,0.7,0.7,0.7,0.6, 0.6,0.6,0.6,0.5,0.5];
 const TIME_PER_SLIDER = 6; // segundos
@@ -97,7 +97,7 @@ export function ChannelScrambleReal({ onExit }: Props) {
       const volume = c.targetVolume / 100;
       // Toca cada canal com o volume alvo
       const gain = 0.02 + volume * 0.15;
-      playNoteReal(c.freq, 0.8, c.instrument);
+      void playNoteReal(c.freq, 0.8, c.instrument);
     });
   }, [channels]);
 
@@ -105,7 +105,7 @@ export function ChannelScrambleReal({ onExit }: Props) {
     channels.forEach(c => {
       const volume = c.currentVolume / 100;
       const gain = 0.02 + volume * 0.15;
-      playNoteReal(c.freq, 0.8, c.instrument);
+      void playNoteReal(c.freq, 0.8, c.instrument);
     });
   }, [channels]);
 
