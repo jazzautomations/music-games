@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Play, ChevronLeft, RotateCcw, Trophy } from "lucide-react";
-import { MicManager, playTone, playMelody, type PitchDetection, freqToMidi } from "@/lib/audio/pitchDetector";
+import { MicManager, type PitchDetection, freqToMidi } from "@/lib/audio/pitchDetector";
 import { midiToFreq, generateScale, PRACTICE_KEYS } from "@/lib/audio/musicTheory";
-import { useMicPermission } from "@/hooks/useMicPermission";
+import { playNoteReal, playMelodyReal } from "@/lib/audio/soundfontEngine";
+
 import { useProgress } from "@/hooks/useProgress";
 import { PitchVisualizer } from "./PitchVisualizer";
 
@@ -119,7 +120,7 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     // Toca a frase
     setTimeout(() => {
       setIsPlaying(true);
-      playMelody(notes.map((n) => midiToFreq(n)), 600);
+      void playMelodyReal(notes.map((n) => midiToFreq(n)), 600);
       setTimeout(() => setIsPlaying(false), notes.length * 600 + 200);
     }, 300);
   }, [generateLevelNotes]);
@@ -189,7 +190,7 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
   const replayTarget = useCallback(() => {
     if (targetNotes.length === 0) return;
     setIsPlaying(true);
-    playMelody(targetNotes.map((n) => midiToFreq(n)), 600);
+    void playMelodyReal(targetNotes.map((n) => midiToFreq(n)), 600);
     setTimeout(() => setIsPlaying(false), targetNotes.length * 600 + 200);
   }, [targetNotes]);
 

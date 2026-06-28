@@ -12,7 +12,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Play, ChevronLeft, RotateCcw } from "lucide-react";
-import { MicManager, playMelody, type PitchDetection } from "@/lib/audio/pitchDetector";
+import { MicManager, type PitchDetection } from "@/lib/audio/pitchDetector";
+import { playMelodyReal } from "@/lib/audio/soundfontEngine";
 import { midiToFreq, generateScale, PRACTICE_KEYS } from "@/lib/audio/musicTheory";
 import { useProgress } from "@/hooks/useProgress";
 import { PitchVisualizer } from "./PitchVisualizer";
@@ -61,14 +62,14 @@ export function VocalStepsRepeat({ onExit, micManager, micActive, micError, star
     setPhrase(p);
     setCurrentIdx(0);
     setIsPlaying(true);
-    playMelody(p.map((n) => midiToFreq(n)), 500);
+    void playMelodyReal(p.map((n) => midiToFreq(n)), 500);
     setTimeout(() => setIsPlaying(false), p.length * 500 + 200);
   }, [level, generatePhrase]);
 
   const replay = useCallback(() => {
     if (phrase.length === 0) return;
     setIsPlaying(true);
-    playMelody(phrase.map((n) => midiToFreq(n)), 500);
+    void playMelodyReal(phrase.map((n) => midiToFreq(n)), 500);
     setTimeout(() => setIsPlaying(false), phrase.length * 500 + 200);
   }, [phrase]);
 

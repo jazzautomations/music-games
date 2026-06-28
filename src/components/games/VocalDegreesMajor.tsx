@@ -12,7 +12,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Play, ChevronLeft, RotateCcw } from "lucide-react";
-import { MicManager, playChord, playTone, type PitchDetection } from "@/lib/audio/pitchDetector";
+import { MicManager, type PitchDetection } from "@/lib/audio/pitchDetector";
+import { playNoteReal, playChordReal } from "@/lib/audio/soundfontEngine";
 import { midiToFreq, generateScale, PRACTICE_KEYS, SCALE_DEGREE_NAMES } from "@/lib/audio/musicTheory";
 import { useProgress } from "@/hooks/useProgress";
 import { PitchVisualizer } from "./PitchVisualizer";
@@ -77,9 +78,9 @@ export function VocalDegreesMajor({ onExit, micManager, micActive, micError, sta
     if (!round) return;
     // Toca acorde de tônica (I) por 1.5s, depois toca o acorde do grau alvo
     const tonicChord = generateScale(round.keyMidi, "major", 0).slice(0, 3);
-    playChord(tonicChord.map((m) => midiToFreq(m)), 1500);
+    void playChordReal(tonicChord.map((m) => midiToFreq(m)), 1500);
     // Toca nota alvo depois de 1s
-    setTimeout(() => playTone(midiToFreq(round.targetMidi), 800), 1600);
+    setTimeout(() => void playNoteReal(midiToFreq(round.targetMidi), 800), 1600);
   }, [round]);
 
   useEffect(() => {
