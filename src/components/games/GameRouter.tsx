@@ -20,7 +20,6 @@ import { DangoBrothersReal } from "./DangoBrothersReal";
 import { RhythmRepeatReal } from "./RhythmRepeatReal";
 import { ChordLocksReal } from "./ChordLocksReal";
 import { ChannelScrambleReal } from "./ChannelScrambleReal";
-import { SpeedPitch } from "./SpeedPitch";
 import { useMicPermission } from "@/hooks/useMicPermission";
 import type { ChordType } from "@/lib/audio/musicTheory";
 
