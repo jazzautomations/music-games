@@ -100,7 +100,7 @@ export function VocalStepsRepeat({ onExit, micManager, micActive, micError, star
   useEffect(() => {
     if (phrase.length > 0 && currentIdx >= phrase.length) {
       unlockAchievement("first_play");
-      recordPlay("vocal-steps", level, score);
+      recordPlay("vocal-steps-repeat", level, score);
       if (level >= 5) unlockAchievement("level_5");
       if (level >= 10) unlockAchievement("level_10");
       setTimeout(() => setLevel((l) => Math.min(20, l + 1)), 1500);

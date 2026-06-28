@@ -102,7 +102,7 @@ export function VocalDegreesMajor({ onExit, micManager, micActive, micError, sta
       setScore((s) => s + 100);
       setStreak((s) => s + 1);
       unlockAchievement("first_play");
-      recordPlay("vocal-degrees", level, score + 100);
+      recordPlay("vocal-degrees-major", level, score + 100);
       setTimeout(() => {
         setFeedback("idle");
         setShowAnswer(true);
