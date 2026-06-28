@@ -21,6 +21,7 @@ import { playNoteReal, playMelodyReal } from "@/lib/audio/soundfontEngine";
 
 import { useProgress } from "@/hooks/useProgress";
 import { PitchVisualizer } from "./PitchVisualizer";
+import { PitchCircle } from "./PitchCircle";
 
 interface VocalMatchProps {
   onExit: () => void;
@@ -298,8 +299,15 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </div>
             </Card>
 
-            {/* Pitch visualizer */}
-            <PitchVisualizer micManager={micManager} targetMidi={targetMidi} onPitchDetected={handlePitch} />
+            {/* Pitch visualizer + PitchCircle */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="flex-shrink-0">
+                <PitchCircle pitch={null} targetMidi={targetMidi} size={200} />
+              </div>
+              <div className="flex-1 w-full">
+                <PitchVisualizer micManager={micManager} targetMidi={targetMidi} onPitchDetected={handlePitch} />
+              </div>
+            </div>
 
             {/* Feedback flutuante */}
             {feedback !== "idle" && (
