@@ -41,7 +41,7 @@ const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnT
   "arpeggios": { generateRound: makeArpeggioRound },
   "flash-tones": { generateRound: makeScaleDegreeRound },
   "number-blaster": { generateRound: makeScaleDegreeRound },
-  "paddle-pitch": { generateRound: makeScaleDegreeRound },
+  "paddle-tones": { generateRound: makeScaleDegreeRound },
   "flash-intervals-melodic": { generateRound: (l) => makeIntervalRound(l, false) },
   "flash-intervals-harmonic": { generateRound: (l) => makeIntervalRound(l, true) },
   "flash-notation-intervals": { generateRound: (l) => makeIntervalRound(l, false) },
