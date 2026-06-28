@@ -2,12 +2,6 @@
 
 /**
  * GameRouter — Roteia cada jogo pro componente correto
- *
- * Mapeamento:
- * - Drops games (ToneDrops, ChordDrops, MelodicDrops, etc) → DropsGameReal
- * - Flashcard games (FlashChords, FlashTones, PitchCompare, etc) → FlashcardGameReal
- * - Singing games (VocalMatch, VocalDegrees, etc) → componentes de microfone
- * - Tuning games (DangoBros) → componente próprio
  */
 
 import { GAMES_MAP } from "@/lib/games/gamesCatalog";
@@ -25,18 +19,16 @@ import type { ChordType } from "@/lib/audio/musicTheory";
 
 interface GameRouterProps { gameId: string; onExit: () => void; }
 
-// Drops games → DropsGameReal com config específica
 const DROPS_CONFIG = {
   "tone-drops": toneDropsConfig,
   "chord-drops": chordDropsConfig,
   "melodic-drops": melodicDropsConfig,
-  "harmonic-balloons": melodicDropsConfig,
+  "harmonic-drops": melodicDropsConfig,
   "tonal-recall": toneDropsConfig,
-  "flash-intervals-m": melodicDropsConfig,
+  "flash-intervals-melodic": melodicDropsConfig,
   "flash-intervals-harmonic": melodicDropsConfig,
 };
 
-// Flashcard games → FlashcardGameReal com gerador específico
 const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnType<typeof makeChordRound>; timed?: boolean; getTimeLimit?: (lvl: number) => number; numOptions?: number }> = {
   "pitch-compare": { generateRound: makePitchCompareRound },
   "speed-pitch": { generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) },
@@ -74,7 +66,6 @@ const FLASHCARD_CONFIG: Record<string, { generateRound: (lvl: number) => ReturnT
   "tone-trees": { generateRound: makeChordSpellsRound },
 };
 
-// Singing games
 const SINGING_GAMES = new Set([
   "vocal-match", "vocal-degrees-major", "vocal-degrees-minor",
   "vocal-steps-repeat", "two-tones-major", "two-tones-minor",
@@ -89,41 +80,26 @@ export function GameRouter({ gameId, onExit }: GameRouterProps) {
 
   if (!game) return <div className="min-h-screen bg-[#0a0a14] text-white flex items-center justify-center"><div className="text-center"><p className="text-xl mb-4">Jogo não encontrado</p><button onClick={onExit} className="px-4 py-2 bg-white/10 rounded">Voltar</button></div></div>;
 
-  // Drops games
   if (DROPS_CONFIG[gameId]) {
     return <DropsGameReal game={game} config={DROPS_CONFIG[gameId]} onExit={onExit} />;
   }
 
-  // Flashcard games
   if (FLASHCARD_CONFIG[gameId]) {
     const cfg = FLASHCARD_CONFIG[gameId];
     return <FlashcardGameReal game={game} config={cfg} onExit={onExit} />;
   }
 
-  // Dango Brothers (tuning drag mechanic)
   if (gameId === "dango-brothers") return <DangoBrothersReal onExit={onExit} />;
-
-  // Rhythm Repeat (beat grid mechanic)
   if (gameId === "rhythm-repeat") return <RhythmRepeatReal onExit={onExit} />;
-
-  // Chord Locks (combination dial mechanic)
   if (gameId === "chord-locks") return <ChordLocksReal onExit={onExit} />;
-
-  // Channel Scramble (mixer slider mechanic)
   if (gameId === "channel-scramble") return <ChannelScrambleReal onExit={onExit} />;
 
-  // Speed Pitch (tem componente próprio, mas agora usa FlashcardGameReal)
-  if (gameId === "speed-pitch") return <FlashcardGameReal game={game} config={{ generateRound: makePitchCompareRound, timed: true, getTimeLimit: (l) => Math.max(1.5, 5 - (l - 1) * 0.2) }} onExit={onExit} />;
-
-  // Singing games
   if (SINGING_GAMES.has(gameId)) {
     if (gameId === "vocal-match") return <VocalMatch onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
     if (gameId === "vocal-degrees-major") return <VocalDegreesMajor onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
     if (gameId === "vocal-steps-repeat") return <VocalStepsRepeat onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
-    // Outros singing games usam VocalMatch como base
     return <VocalMatch onExit={onExit} micManager={mic.micManager} micActive={mic.micActive} micError={mic.micError} startMic={mic.startMic} stopMic={mic.stopMic} />;
   }
 
-  // Fallback
   return <FlashcardGameReal game={game} config={{ generateRound: makeChordRound }} onExit={onExit} />;
 }

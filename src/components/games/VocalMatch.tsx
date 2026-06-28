@@ -3,11 +3,11 @@
 /**
  * VocalMatch — Jogo 1: canta a nota alvo com precisão
  *
- * Inspirado no Vocal Match do Theta Music Trainer.
  * Progressão: nota isolada → 2 notas → 3 notas → intervalo → acorde.
  * 20 níveis no total.
  *
- * Detecta pitch via YIN e mostra desvio em cents em tempo real.
+ * Detecta pitch via autocorrelação e mostra desvio em cents em tempo real.
+ * Thresholds ajustados pra YIN real-time (±15 cents perfeito, ±30 cents bom).
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -74,28 +74,23 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
   const [score, setScore] = useState(0);
 
   const { recordPlay, unlockAchievement } = useProgress();
-  const matchWindowRef = useRef<number | null>(null);
-  const matchStartRef = useRef<number>(0);
   const lastHitRef = useRef<number>(-1000);
 
-  // Gerar notas pra um nível
   const generateLevelNotes = useCallback((level: number): number[] => {
     const cfg = LEVELS[Math.min(level - 1, LEVELS.length - 1)];
     const root = PRACTICE_KEYS[Math.floor(Math.random() * PRACTICE_KEYS.length)];
-    const scale = generateScale(root.midi + 12, "major", 0); // oitava acima (C5+)
+    const scale = generateScale(root.midi + 12, "major", 0);
 
     if (level >= 11 && level <= 14) {
-      // Acordes
-      if (level === 11) return [root.midi + 12, root.midi + 16, root.midi + 19]; // major triad
-      if (level === 12) return [root.midi + 12, root.midi + 15, root.midi + 19]; // minor triad
-      if (level === 13) return [root.midi + 12, root.midi + 16, root.midi + 19, root.midi + 22]; // maj7
-      if (level === 14) return [root.midi + 12, root.midi + 17, root.midi + 19]; // sus4
+      if (level === 11) return [root.midi + 12, root.midi + 16, root.midi + 19];
+      if (level === 12) return [root.midi + 12, root.midi + 15, root.midi + 19];
+      if (level === 13) return [root.midi + 12, root.midi + 16, root.midi + 19, root.midi + 22];
+      if (level === 14) return [root.midi + 12, root.midi + 17, root.midi + 19];
     }
 
     if (level === 15) return generateScale(root.midi + 12, "pentatonicMajor", 0).slice(0, 5);
     if (level === 16) return generateScale(root.midi + 12, "blues", 0).slice(0, 6);
 
-    // Default: gera frase aleatória
     const notes: number[] = [scale[0]];
     for (let i = 1; i < cfg.numNotes; i++) {
       const stepOptions = [-2, -1, -1, 0, 1, 1, 2];
@@ -109,7 +104,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     return notes;
   }, []);
 
-  // Inicia um novo nível
   const startLevel = useCallback((level: number) => {
     const notes = generateLevelNotes(level);
     setTargetNotes(notes);
@@ -118,7 +112,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     setAttempts(0);
     setFeedback("idle");
     setIsPlaying(false);
-    // Toca a frase
     setTimeout(() => {
       setIsPlaying(true);
       void playMelodyReal(notes.map((n) => midiToFreq(n)), 600);
@@ -130,7 +123,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     startLevel(currentLevel);
   }, [currentLevel, startLevel]);
 
-  // Verifica pitch detectado contra nota alvo
   const handlePitch = useCallback((pitch: PitchDetection) => {
     if (pitch.isSilent || isPlaying) return;
     if (currentNoteIdx >= targetNotes.length) return;
@@ -138,12 +130,10 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     const target = targetNotes[currentNoteIdx];
     const centsOff = Math.abs((pitch.midi - target) * 100);
 
-    // Threshold pra aceitar (5 cents = perfeito, 15 = bom, mais = miss)
     const now = Date.now();
-    if (now - lastHitRef.current < 400) return; // debounce 400ms
+    if (now - lastHitRef.current < 400) return;
 
-    if (centsOff < 5 && pitch.confidence > 0.5) {
-      // Perfeito!
+    if (centsOff < 15 && pitch.confidence > 0.4) {
       lastHitRef.current = now;
       setFeedback("perfect");
       setHits((h) => h + 1);
@@ -157,8 +147,7 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
       setScore((s) => s + 100 + Math.floor(pitch.confidence * 50));
       setCurrentNoteIdx((i) => i + 1);
       setTimeout(() => setFeedback("idle"), 300);
-    } else if (centsOff < 15 && pitch.confidence > 0.4) {
-      // Bom
+    } else if (centsOff < 30 && pitch.confidence > 0.3) {
       lastHitRef.current = now;
       setFeedback("good");
       setHits((h) => h + 1);
@@ -168,13 +157,10 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
       setCurrentNoteIdx((i) => i + 1);
       setTimeout(() => setFeedback("idle"), 300);
     }
-    // Miss não conta como attempt direto (deixa o jogador tentar)
   }, [targetNotes, currentNoteIdx, isPlaying, unlockAchievement]);
 
-  // Verifica vitória/derrota
   useEffect(() => {
     if (targetNotes.length > 0 && currentNoteIdx >= targetNotes.length) {
-      // Venceu o nível!
       if (currentLevel >= 5) unlockAchievement("level_5");
       if (currentLevel >= 10) unlockAchievement("level_10");
       if (currentLevel >= 20) unlockAchievement("level_20");
@@ -241,7 +227,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
           </Card>
         ) : (
           <>
-            {/* HUD */}
             <div className="grid grid-cols-4 gap-3 mb-4">
               <Card className="bg-white/5 border-white/10 p-3 text-center">
                 <div className="text-[10px] uppercase tracking-wider text-white/50">Nível</div>
@@ -261,7 +246,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </Card>
             </div>
 
-            {/* Descrição do nível */}
             <Card className="bg-white/5 border-white/10 p-4 mb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -274,7 +258,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </div>
             </Card>
 
-            {/* Progresso da frase */}
             <Card className="bg-white/5 border-white/10 p-4 mb-4">
               <div className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Frase melódica</div>
               <div className="flex gap-2 flex-wrap">
@@ -299,7 +282,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </div>
             </Card>
 
-            {/* Pitch visualizer + PitchCircle */}
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="flex-shrink-0">
                 <PitchCircle pitch={null} targetMidi={targetMidi} size={200} />
@@ -309,7 +291,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </div>
             </div>
 
-            {/* Feedback flutuante */}
             {feedback !== "idle" && (
               <div className="fixed top-1/3 left-1/2 -translate-x-1/2 pointer-events-none z-50">
                 <div className={`text-6xl font-black ${feedback === "perfect" ? "text-emerald-400" : "text-amber-400"}`} style={{ textShadow: "0 0 20px currentColor" }}>
@@ -318,7 +299,6 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               </div>
             )}
 
-            {/* Controles */}
             <div className="mt-4 flex gap-2">
               <Button variant="outline" onClick={() => startLevel(currentLevel)} className="border-white/20">
                 <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar nível
@@ -330,10 +310,9 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
               )}
             </div>
 
-            {/* Dicas */}
             <Card className="bg-white/5 border-white/10 p-3 mt-4 text-xs text-white/60">
               <div className="font-semibold text-white/80 mb-1">💡 Como funciona</div>
-              Ouça a frase alvo → cante cada nota em sequência. Verde = perfeito (±5 cents), amarelo = bom (±15 cents). O YIN detecta seu pitch com precisão sub-cent. Heads recomendado pra evitar eco.
+              Ouça a frase alvo → cante cada nota em sequência. Verde = perfeito (±15 cents), amarelo = bom (±30 cents). O detector de autocorrelação detecta seu pitch com precisão sub-cent. Heads recomendado pra evitar eco.
             </Card>
           </>
         )}

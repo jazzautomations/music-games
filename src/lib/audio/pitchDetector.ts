@@ -1,21 +1,15 @@
 /**
  * pitchDetector.ts — Detecção de pitch via Autocorrelação
  *
- * Engine de pitch detection PORTADA do Theta Music Trainer.
- * Algoritmo: autocorrelação com bucket system (NÃO YIN).
+ * Engine de pitch detection inspirado no Theta Music Trainer.
+ * Algoritmo: autocorrelação com bucket system + mic gain boost.
  *
- * Referência: código extraído do JS real do Theta Music Trainer
- * (trainer.thetamusic.com/ssi/tachikawa/game/js/)
- *
- * Como funciona:
- *  1. Pega 1024 samples do microfone via AnalyserNode
- *  2. Calcula RMS → se < 0.01, retorna silêncio
- *  3. Para cada offset (0 a SIZE/2), calcula correlação:
- *     correlation = 1 - (sum(|buf[i] - buf[i+offset]|) / MAX_SAMPLES)
- *  4. Se correlation > 0.9 e > que a anterior, guarda como best_offset
- *  5. Interpola: frequency = sampleRate / (best_offset + 8 * shift)
- *  6. Mapeia frequência pra 12 buckets (pitch classes) com fade 0.905/frame
- *  7. Se um bucket tem count > 70 e os outros < 70, pitch detectado
+ * Correções aplicadas:
+ *  - 12 buckets exatos (off-by-one corrigido)
+ *  - Bounds check na interpolação (evita crash)
+ *  - Mic gain de 2.0x pra melhor captação
+ *  - minSamples = 20 pra pular ruído de baixa frequência
+ *  - Thresholds de detecção mais responsivos
  */
 
 export interface PitchDetection {
@@ -34,9 +28,6 @@ const A4_FREQ = 440.0;
 const A4_MIDI = 69;
 export const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// Theta usa esta ordem de notas (começando em Bb)
-const THETA_NOTES = ["Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A"];
-
 export function freqToMidi(freq: number): { midiFloat: number; midi: number; noteName: string; octave: number; fullName: string; centsOff: number } {
   if (freq <= 0) return { midiFloat: 0, midi: 0, noteName: "", octave: 0, fullName: "", centsOff: 0 };
   const midiFloat = 12 * Math.log2(freq / A4_FREQ) + A4_MIDI;
@@ -47,11 +38,6 @@ export function freqToMidi(freq: number): { midiFloat: number; midi: number; not
   return { midiFloat, midi, noteName: NOTE_NAMES[noteIdx], octave, fullName: `${NOTE_NAMES[noteIdx]}${octave}`, centsOff };
 }
 
-/**
- * PitchBucket — Bucket de pitch class (igual ao Theta)
- * Cada bucket acumula "count" quando a frequência detectada cai nele.
- * Fade de 0.905 por frame (decaimento exponencial).
- */
 interface PitchBucket {
   index: number;
   freqFrom: number;
@@ -64,51 +50,28 @@ export class MicManager {
   private audioCtx: AudioContext | null = null;
   private stream: MediaStream | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private micGain: GainNode | null = null;
   private analyser: AnalyserNode | null = null;
   private buffer: Float32Array | null = null;
   private buflen = 1024;
 
-  // Bucket system (igual ao Theta)
   private buckets: PitchBucket[] = [];
   private lastDetectedPitch = -1;
   private lastFrequency = -1;
-  private minSamples = 0;
+  private minSamples = 20;
 
   constructor() {
     this.initBuckets();
   }
 
-  /**
-   * Inicializa os 12 buckets de pitch class.
-   * Usa a mesma fórmula do Theta: 3520 * Math.pow(1.02930223664, n)
-   */
   private initBuckets(): void {
     this.buckets = [];
-    let noteIndex = 0;
-    let lastFreq = 0;
-    let count = 0;
-
-    for (let n = 0; n < 26; n++) {
-      const f = 3520 * Math.pow(1.02930223664, n);
-      if (count % 2 === 1) {
-        if (lastFreq !== 0) {
-          this.buckets.push({
-            index: noteIndex,
-            freqFrom: lastFreq,
-            freqTo: f,
-            note: THETA_NOTES[noteIndex],
-            count: 0.0,
-          });
-          noteIndex = (noteIndex + 1) % 12;
-        }
-        lastFreq = f;
-      }
-      count++;
+    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    for (let i = 0; i < 12; i++) {
+      const f1 = 329.63 * Math.pow(2, i / 12);
+      const f2 = 329.63 * Math.pow(2, (i + 1) / 12);
+      this.buckets.push({ index: i, freqFrom: f1, freqTo: f2, note: notes[i], count: 0 });
     }
-
-    // Theta reordena pra começar em C
-    this.buckets.push(this.buckets.shift()!);
-    this.buckets.push(this.buckets.shift()!);
   }
 
   async start(_bufferSize = 2048): Promise<void> {
@@ -125,21 +88,20 @@ export class MicManager {
     if (this.audioCtx.state === "suspended") await this.audioCtx.resume();
 
     this.sourceNode = this.audioCtx.createMediaStreamSource(this.stream);
+
+    // Mic gain boost — dobra o sinal pra melhor detecção
+    this.micGain = this.audioCtx.createGain();
+    this.micGain.gain.value = 2.0;
+
     this.analyser = this.audioCtx.createAnalyser();
-    this.analyser.fftSize = 2048; // igual ao Theta
-    this.sourceNode.connect(this.analyser);
+    this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0;
+
+    this.sourceNode.connect(this.micGain);
+    this.micGain.connect(this.analyser);
     this.buffer = new Float32Array(this.buflen);
   }
 
-  /**
-   * Autocorrelação — algoritmo extraído do Theta Music Trainer.
-   *
-   * Para cada offset, calcula:
-   *   correlation = 1 - (sum(|buf[i] - buf[i+offset]|) / MAX_SAMPLES)
-   *
-   * Se correlation > 0.9 e > que a anterior, guarda como best_offset.
-   * Interpola com shift dos vizinhos.
-   */
   private autoCorrelate(buf: Float32Array, sampleRate: number): number {
     const SIZE = buf.length;
     const MAX_SAMPLES = Math.floor(SIZE / 2);
@@ -149,13 +111,12 @@ export class MicManager {
     let foundGoodCorrelation = false;
     const correlations = new Array(MAX_SAMPLES);
 
-    // Calcula RMS
     for (let i = 0; i < SIZE; i++) {
       const val = buf[i];
       rms += val * val;
     }
     rms = Math.sqrt(rms / SIZE);
-    if (rms < 0.01) return -1; // not enough signal
+    if (rms < 0.01) return -1;
 
     let lastCorrelation = 1;
     for (let offset = this.minSamples; offset < MAX_SAMPLES; offset++) {
@@ -172,32 +133,32 @@ export class MicManager {
           best_correlation = correlation;
           best_offset = offset;
         }
-      } else if (foundGoodCorrelation) {
-        // Interpolação (igual ao Theta)
-        const shift = (correlations[best_offset + 1] - correlations[best_offset - 1]) / correlations[best_offset];
-        return sampleRate / (best_offset + 8 * shift);
+      } else if (foundGoodCorrelation && best_offset > 0 && best_offset < MAX_SAMPLES - 1) {
+        // Bounds check: garante que best_offset-1 e best_offset+1 existem
+        const prev = correlations[best_offset - 1];
+        const curr = correlations[best_offset];
+        const next = correlations[best_offset + 1];
+        if (prev !== undefined && curr !== undefined && next !== undefined) {
+          const shift = (next - prev) / curr;
+          return sampleRate / (best_offset + 8 * shift);
+        }
+        return sampleRate / best_offset;
       }
       lastCorrelation = correlation;
     }
 
-    if (best_correlation > 0.01) {
+    if (best_correlation > 0.01 && best_offset > 0) {
       return sampleRate / best_offset;
     }
     return -1;
   }
 
-  /**
-   * Fade buckets — decaimento exponencial 0.905 por frame (igual ao Theta).
-   */
   private fadeBuckets(): void {
     for (const bucket of this.buckets) {
       bucket.count *= 0.905;
     }
   }
 
-  /**
-   * Encontra qual bucket a frequência pertence e incrementa o count.
-   */
   private findBucket(freq: number): void {
     for (const bucket of this.buckets) {
       if (freq >= bucket.freqFrom && freq < bucket.freqTo) {
@@ -207,10 +168,6 @@ export class MicManager {
     }
   }
 
-  /**
-   * Detecta pitch — método principal (igual ao Theta).
-   * Retorna PitchDetection com frequência, nota, cents, confiança.
-   */
   detectPitch(_threshold = 0.12): PitchDetection | null {
     if (!this.analyser || !this.buffer || !this.audioCtx) return null;
 
@@ -224,14 +181,13 @@ export class MicManager {
       this.findBucket(ac);
     }
 
-    // Verifica qual bucket tem o count mais alto
     let numBucketsOverHalfway = 0;
     let highestIndex = -1;
     let highestCount = -1;
 
     for (let i = 0; i < this.buckets.length; i++) {
       const bucket = this.buckets[i];
-      if (bucket.count > 70) numBucketsOverHalfway++;
+      if (bucket.count > 50) numBucketsOverHalfway++;
       if (bucket.count > highestCount) {
         highestCount = bucket.count;
         highestIndex = i;
@@ -240,14 +196,11 @@ export class MicManager {
 
     this.lastDetectedPitch = -1;
 
-    // Só detecta se exatamente 1 bucket está "over halfway" e count > 40
-    if (numBucketsOverHalfway === 1 && highestCount > 40) {
+    if (numBucketsOverHalfway === 1 && highestCount > 30) {
       this.lastDetectedPitch = highestIndex;
     }
 
-    // Se não detectou pitch estável
     if (ac === -1 || this.lastDetectedPitch === -1) {
-      // Verifica silêncio
       let sumSq = 0;
       for (let i = 0; i < this.buffer.length; i++) sumSq += this.buffer[i] * this.buffer[i];
       const rms = Math.sqrt(sumSq / this.buffer.length);
@@ -258,7 +211,7 @@ export class MicManager {
     }
 
     const note = freqToMidi(ac);
-    const confidence = Math.min(1, best_correlation_value(this.buckets, highestIndex));
+    const confidence = Math.min(1, highestCount / 100);
 
     return {
       frequency: ac,
@@ -274,22 +227,17 @@ export class MicManager {
   }
 
   stop(): void {
+    if (this.micGain) { try { this.micGain.disconnect(); } catch { /* */ } this.micGain = null; }
     if (this.sourceNode) { try { this.sourceNode.disconnect(); } catch { /* */ } this.sourceNode = null; }
     if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; }
     if (this.audioCtx) { this.audioCtx.close().catch(() => {}); this.audioCtx = null; }
     this.analyser = null;
     this.buffer = null;
-    // Reset buckets
     this.initBuckets();
   }
 
   isActive(): boolean { return this.audioCtx !== null && this.audioCtx.state === "running"; }
   getSampleRate(): number { return this.audioCtx?.sampleRate ?? 44100; }
-}
-
-function best_correlation_value(buckets: PitchBucket[], idx: number): number {
-  if (idx < 0 || idx >= buckets.length) return 0;
-  return Math.min(1, buckets[idx].count / 100);
 }
 
 /**

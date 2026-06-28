@@ -18,7 +18,7 @@ import { GameShell } from "./GameShell";
 import { GAMES_MAP, type GameDef } from "@/lib/games/gamesCatalog";
 import { useProgress } from "@/hooks/useProgress";
 import { initAudio, playNoteReal, playChordReal, playMelodyReal, midiToFreq, type RealInstrument } from "@/lib/audio/soundfontEngine";
-import { generateScale, generateChord, PRACTICE_KEYS, INTERVALS, CHORDS, type ChordType } from "@/lib/audio/musicTheory";
+import { generateChord, PRACTICE_KEYS, INTERVALS, CHORDS, type ChordType } from "@/lib/audio/musicTheory";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 function midiToName(midi: number): string { return `${NOTE_NAMES[((midi % 12) + 12) % 12]}`; }

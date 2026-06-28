@@ -91,7 +91,7 @@ export default function Home() {
           </h1>
 
           <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg mb-10 leading-relaxed">
-            55 jogos de ear training, pitch, ritmo, melodia, harmonia e canto.
+            50 jogos de ear training, pitch, ritmo, melodia, harmonia e canto.
             Instrumentos reais gravados (piano, violão, flauta, violino).
             Detecção de pitch por autocorrelação. Inspirado no Theta Music Trainer.
           </p>
@@ -312,7 +312,7 @@ export default function Home() {
       <footer className="border-t border-white/5 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-center">
           <p className="text-xs text-muted-foreground mb-1">
-            55 jogos · Instrumentos reais (FluidR3_GM) · Pitch detection YIN · 100% no navegador
+            50 jogos · Instrumentos reais (FluidR3_GM) · Pitch detection YIN · 100% no navegador
           </p>
           <p className="text-[10px] text-muted-foreground/60">
             Inspirado no{" "}
