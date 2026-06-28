@@ -114,7 +114,7 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
     setIsPlaying(false);
     setTimeout(() => {
       setIsPlaying(true);
-      void playMelodyReal(notes.map((n) => midiToFreq(n)), 600);
+      void playMelodyReal(notes.map((n) => midiToFreq(n)), 0.6);
       setTimeout(() => setIsPlaying(false), notes.length * 600 + 200);
     }, 300);
   }, [generateLevelNotes]);
@@ -177,7 +177,7 @@ export function VocalMatch({ onExit, micManager, micActive, micError, startMic, 
   const replayTarget = useCallback(() => {
     if (targetNotes.length === 0) return;
     setIsPlaying(true);
-    void playMelodyReal(targetNotes.map((n) => midiToFreq(n)), 600);
+    void playMelodyReal(targetNotes.map((n) => midiToFreq(n)), 0.6);
     setTimeout(() => setIsPlaying(false), targetNotes.length * 600 + 200);
   }, [targetNotes]);
 

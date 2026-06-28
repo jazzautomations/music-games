@@ -78,9 +78,9 @@ export function VocalDegreesMajor({ onExit, micManager, micActive, micError, sta
     if (!round) return;
     // Toca acorde de tônica (I) por 1.5s, depois toca o acorde do grau alvo
     const tonicChord = generateScale(round.keyMidi, "major", 0).slice(0, 3);
-    void playChordReal(tonicChord.map((m) => midiToFreq(m)), 1500);
+    void playChordReal(tonicChord.map((m) => midiToFreq(m)), 1.5);
     // Toca nota alvo depois de 1s
-    setTimeout(() => void playNoteReal(midiToFreq(round.targetMidi), 800), 1600);
+    setTimeout(() => void playNoteReal(midiToFreq(round.targetMidi), 0.8), 1600);
   }, [round]);
 
   useEffect(() => {
